@@ -14,7 +14,8 @@ class CalificacionesRepository {
     return ResumenCalificaciones.fromJson(json);
   }
 
-  /// `POST /api/ratings` (body de Postman + `encomiendaId` si se conoce).
+  /// `POST /api/ratings` (body de Postman). El backend ignora `encomiendaId`
+  /// (22-oct-2026); se envía igual por si lo empieza a usar.
   Future<void> calificar({
     required String usuarioDestino,
     required Rol rolDestino,

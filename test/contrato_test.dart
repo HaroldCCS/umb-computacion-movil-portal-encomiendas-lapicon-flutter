@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lapticon_app/core/utils/formatters.dart';
 import 'package:lapticon_app/data/models/encomienda.dart';
 import 'package:lapticon_app/data/models/estado.dart';
+import 'package:lapticon_app/data/models/resumen_calificaciones.dart';
 import 'package:lapticon_app/data/models/usuario.dart';
 import 'package:lapticon_app/data/models/viaje.dart';
 import 'package:lapticon_app/data/repositories/chat_repository.dart';
@@ -231,6 +232,31 @@ void main() {
         expect(EstadoEncomienda.parse(v).apiValue, v);
       }
       expect(EstadoEncomienda.parse('cancelada'), EstadoEncomienda.desconocido);
+    });
+
+    test('GET /api/ratings/:uid usa "timestamp" como fecha', () {
+      final r = ResumenCalificaciones.fromJson({
+        'total': 1,
+        'promedio': 5,
+        'calificaciones': [
+          {
+            '_id': '6ada5e83a4012aeb7e63d87f',
+            'usuarioOrigen': 'uidR',
+            'usuarioDestino': 'uidV',
+            'rolDestino': 'viajero',
+            'calificacion': 5,
+            'comentario': 'Prueba antes de entregar',
+            'timestamp': '2026-10-22T19:05:39.400Z',
+            '__v': 0,
+          },
+        ],
+      });
+      expect(r.total, 1);
+      expect(r.promedio, 5);
+      expect(
+        r.calificaciones.single.fecha,
+        DateTime.utc(2026, 10, 22, 19, 5, 39, 400),
+      );
     });
   });
 }

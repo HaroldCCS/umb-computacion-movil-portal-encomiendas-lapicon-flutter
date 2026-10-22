@@ -54,7 +54,7 @@ class Calificacion {
           ),
       comentario: readString(json, const ['comentario', 'comment']),
       rolDestino: rol.isEmpty ? null : rol,
-      fecha: readDate(json, const ['createdAt', 'fecha']),
+      fecha: readDate(json, const ['timestamp', 'createdAt', 'fecha']),
     );
   }
 }

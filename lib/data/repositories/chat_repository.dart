@@ -20,8 +20,9 @@ class ChatRepository {
       final json = await _api.get('/api/chats/estado/$chatId');
       return parseEstado(json);
     } on ApiException catch (e) {
-      // Si el chat aún no existe en el backend, se considera abierto.
-      if (e.isNotFound) return EstadoChat.abierto;
+      // Si el chat aún no existe se considera abierto. El endpoint responde
+      // 500 incluso para chats reales (22-oct-2026): no debe bloquear el chat.
+      if (e.isNotFound || e.statusCode >= 500) return EstadoChat.abierto;
       rethrow;
     }
   }

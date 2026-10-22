@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lapticon_app/core/network/api_client.dart';
 import 'package:lapticon_app/core/network/app_exception.dart';
+import 'package:lapticon_app/data/models/estado.dart';
+import 'package:lapticon_app/data/repositories/chat_repository.dart';
 
 void main() {
   late List<http.Request> requests;
@@ -134,5 +136,15 @@ void main() {
       'campo requerido',
     );
     expect(ApiClient.extractMessage('<html>Error</html>'), isNull);
+  });
+
+  test('estado del chat: el 500 del backend no bloquea el chat', () async {
+    final api = clientWith(
+      (req, _) => http.Response(
+        jsonEncode({'error': 'Error interno del servidor'}),
+        500,
+      ),
+    );
+    expect(await ChatRepository(api).estado('a_b'), EstadoChat.abierto);
   });
 }
