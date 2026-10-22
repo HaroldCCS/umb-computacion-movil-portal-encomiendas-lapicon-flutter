@@ -34,6 +34,7 @@ class _EncomiendaViajeroScreenState
     extends ConsumerState<EncomiendaViajeroScreen> {
   late Encomienda _e = widget.encomienda;
   bool _loading = false;
+  bool _calificada = false;
 
   String? get _uid => ref.read(sessionProvider).user?.uid;
 
@@ -117,6 +118,7 @@ class _EncomiendaViajeroScreenState
       ),
     );
     if (ok == true && mounted) {
+      setState(() => _calificada = true);
       showAppSnackBar(context, '¡Gracias por calificar!');
     }
   }
@@ -266,11 +268,14 @@ class _EncomiendaViajeroScreenState
       case EstadoEncomienda.entregada || EstadoEncomienda.recibida:
         if (!mia) return [info('Esta encomienda ya fue entregada.')];
         return [
-          PrimaryButton(
-            label: 'Calificar al remitente',
-            icon: Icons.star_outline,
-            onPressed: sinRemitente ? null : _calificar,
-          ),
+          if (_calificada)
+            info('¡Gracias por calificar! Tu opinión ayuda a otros viajeros.')
+          else
+            PrimaryButton(
+              label: 'Calificar al remitente',
+              icon: Icons.star_outline,
+              onPressed: sinRemitente ? null : _calificar,
+            ),
           const SizedBox(height: AppSpacing.sm),
           OutlinedButton.icon(
             onPressed: sinRemitente ? null : _abrirChat,
