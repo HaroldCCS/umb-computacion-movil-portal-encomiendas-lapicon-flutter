@@ -71,7 +71,8 @@ class RouteTicket extends StatelessWidget {
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        top,
+        // La etiqueta "Ruta de X a Y" ya lo dice; así el lector no lo repite.
+        ExcludeSemantics(child: top),
         if (_hasBottom)
           Padding(
             padding: const EdgeInsets.fromLTRB(

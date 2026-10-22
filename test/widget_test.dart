@@ -79,7 +79,11 @@ void main() {
     );
     expect(find.text('Bogota'), findsOneWidget);
     expect(find.text('Miami'), findsOneWidget);
-    expect(find.bySemanticsLabel('Ruta de Bogota a Miami'), findsOneWidget);
+    // Un solo nodo: la ruta una vez y luego los detalles.
+    expect(
+      tester.getSemantics(find.byType(RouteTicket)).label,
+      'Ruta de Bogota a Miami\nFECHA\n1 dic',
+    );
     await expectLater(tester, meetsGuideline(textContrastGuideline));
     handle.dispose();
   });
