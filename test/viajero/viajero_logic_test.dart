@@ -107,6 +107,23 @@ void main() {
     expect(r.map((e) => e.id), ['a']);
   });
 
+  test('conservarNombres completa lo que no trae la respuesta', () {
+    final previa = Encomienda.fromJson({
+      '_id': 'x',
+      'estado': 'tomada',
+      'remitenteNombre': 'Harold',
+    });
+    final nueva = Encomienda.fromJson({
+      '_id': 'x',
+      'uid': 'uidR',
+      'estado': 'entregada',
+    });
+    final r = conservarNombres(nueva, previa);
+    expect(r.remitenteUid, 'uidR');
+    expect(r.remitenteNombre, 'Harold');
+    expect(r.estado, EstadoEncomienda.entregada);
+  });
+
   test('tomadaPorMi y conEstado', () {
     final e = _e('x', viajero: null, estado: EstadoEncomienda.disponible);
     expect(tomadaPorMi(e, 'yo', {}), isFalse);

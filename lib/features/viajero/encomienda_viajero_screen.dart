@@ -96,7 +96,7 @@ class _EncomiendaViajeroScreenState
           (respuesta != null &&
               respuesta.id.isNotEmpty &&
               respuesta.estado == EstadoEncomienda.entregada)
-          ? respuesta
+          ? conservarNombres(respuesta, _e)
           : conEstado(_e, EstadoEncomienda.entregada);
       await _guardarLocal(actualizada);
       if (mounted) setState(() => _e = actualizada);
@@ -203,9 +203,10 @@ class _EncomiendaViajeroScreenState
             ),
             const SeccionHeader('Remitente'),
             if (sinRemitente)
+              // El backend solo da el nombre (no el uid) en /disponibles.
               Text(
-                'No sabemos quién publicó esta encomienda, así que el chat y '
-                'la calificación no están disponibles.',
+                '${_e.remitenteNombre == null ? 'El remitente' : 'La publicó ${_e.remitenteNombre}'}. '
+                'Podrás escribirle cuando te escriba primero por el chat.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

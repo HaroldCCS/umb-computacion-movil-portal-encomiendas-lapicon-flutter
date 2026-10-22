@@ -111,6 +111,24 @@ Encomienda conEstado(
   creadaEn: e.creadaEn,
 );
 
+/// La respuesta de `PUT /:id/estado` trae el uid del remitente pero no su
+/// nombre (que sí venía en `/disponibles`): se completa con lo que ya había.
+Encomienda conservarNombres(Encomienda nueva, Encomienda previa) => Encomienda(
+  id: nueva.id,
+  ciudadOrigen: nueva.ciudadOrigen,
+  ciudadDestino: nueva.ciudadDestino,
+  observaciones: nueva.observaciones,
+  moneda: nueva.moneda,
+  valor: nueva.valor,
+  estado: nueva.estado,
+  remitenteUid: nueva.remitenteUid ?? previa.remitenteUid,
+  viajeroUid: nueva.viajeroUid ?? previa.viajeroUid,
+  remitenteNombre: nueva.remitenteNombre ?? previa.remitenteNombre,
+  viajeroNombre: nueva.viajeroNombre ?? previa.viajeroNombre,
+  fechaVencimiento: nueva.fechaVencimiento ?? previa.fechaVencimiento,
+  creadaEn: nueva.creadaEn ?? previa.creadaEn,
+);
+
 /// Serializa una encomienda con las mismas claves que lee
 /// [Encomienda.fromJson] (para el registro local).
 Map<String, dynamic> encomiendaToJson(Encomienda e) => {
