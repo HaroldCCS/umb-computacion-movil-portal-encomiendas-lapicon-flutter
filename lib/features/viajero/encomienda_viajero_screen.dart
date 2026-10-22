@@ -262,7 +262,7 @@ class _EncomiendaViajeroScreenState
             label: const Text('Abrir chat con el remitente'),
           ),
         ];
-      case EstadoEncomienda.entregada:
+      case EstadoEncomienda.entregada || EstadoEncomienda.recibida:
         if (!mia) return [info('Esta encomienda ya fue entregada.')];
         return [
           PrimaryButton(
@@ -278,9 +278,7 @@ class _EncomiendaViajeroScreenState
           ),
         ];
       case EstadoEncomienda.vencida:
-        return [info('Esta encomienda venció antes de ser entregada.')];
-      case EstadoEncomienda.cancelada:
-        return [info('El remitente canceló esta encomienda.')];
+        return [info('Esta encomienda ya no está publicada.')];
     }
   }
 }

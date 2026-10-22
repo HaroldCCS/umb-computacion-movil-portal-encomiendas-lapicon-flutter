@@ -5,7 +5,7 @@ import '../../../data/models/estado.dart';
 import '../envios_logic.dart';
 
 /// Línea de tiempo vertical: Publicada → Tomada → Entregada → Calificada.
-/// Vencida y cancelada se muestran como estado final (docs/07 §7.5).
+/// Vencida (o retirada por el remitente) se muestra como estado final (docs/07 §7.5).
 class StatusTimeline extends StatelessWidget {
   const StatusTimeline({
     super.key,
@@ -22,26 +22,18 @@ class StatusTimeline extends StatelessWidget {
     final actual = pasoActual(estado, calificada: calificada);
 
     if (actual == null) {
-      final cancelada = estado == EstadoEncomienda.cancelada;
-      final color = cancelada
-          ? AppColors.estadoCancelada
-          : AppColors.estadoVencida;
+      const color = AppColors.estadoVencida;
       return Semantics(
         label: 'Estado final: ${estado.etiqueta}',
         excludeSemantics: true,
         child: Row(
           children: [
-            Icon(
-              cancelada ? Icons.cancel : Icons.event_busy,
-              color: _legible(context, color),
-            ),
+            Icon(Icons.event_busy, color: _legible(context, color)),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
-                cancelada
-                    ? 'Cancelaste esta encomienda.'
-                    : estado == EstadoEncomienda.vencida
-                    ? 'Venció sin que nadie la tomara.'
+                estado == EstadoEncomienda.vencida
+                    ? 'Ya no está publicada: venció o la retiraste.'
                     : 'No conocemos el estado de esta encomienda.',
                 style: theme.textTheme.bodyLarge,
               ),

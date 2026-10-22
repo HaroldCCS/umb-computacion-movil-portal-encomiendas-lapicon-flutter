@@ -65,7 +65,7 @@ List<Encomienda> combinarEntregas({
 int _prioridad(EstadoEncomienda e) => switch (e) {
   EstadoEncomienda.tomada => 0,
   EstadoEncomienda.disponible => 1,
-  EstadoEncomienda.entregada => 2,
+  EstadoEncomienda.entregada || EstadoEncomienda.recibida => 2,
   _ => 3,
 };
 

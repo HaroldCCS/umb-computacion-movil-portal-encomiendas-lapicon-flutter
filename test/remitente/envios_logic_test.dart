@@ -22,13 +22,13 @@ void main() {
       _e('b', EstadoEncomienda.tomada, DateTime(2026, 10, 5)),
       _e('c', EstadoEncomienda.entregada),
       _e('d', EstadoEncomienda.vencida),
-      _e('e', EstadoEncomienda.cancelada),
+      _e('e', EstadoEncomienda.recibida),
       _e('f', EstadoEncomienda.desconocido),
       _e('g', EstadoEncomienda.disponible),
     ]);
     expect(grupos[PestanaEnvios.activas]!.map((e) => e.id), ['b', 'a', 'g']);
-    expect(grupos[PestanaEnvios.entregadas]!.map((e) => e.id), ['c']);
-    expect(grupos[PestanaEnvios.historial]!.map((e) => e.id), ['d', 'e', 'f']);
+    expect(grupos[PestanaEnvios.entregadas]!.map((e) => e.id), ['c', 'e']);
+    expect(grupos[PestanaEnvios.historial]!.map((e) => e.id), ['d', 'f']);
   });
 
   test('lista vacía deja las tres pestañas vacías', () {
@@ -42,7 +42,7 @@ void main() {
     expect(pasoActual(EstadoEncomienda.tomada), 1);
     expect(pasoActual(EstadoEncomienda.entregada), 2);
     expect(pasoActual(EstadoEncomienda.entregada, calificada: true), 3);
-    expect(pasoActual(EstadoEncomienda.cancelada), isNull);
+    expect(pasoActual(EstadoEncomienda.recibida), 2);
     expect(pasoActual(EstadoEncomienda.vencida), isNull);
   });
 
@@ -70,9 +70,9 @@ void main() {
 
   test('conEstado conserva los demás datos', () {
     final original = _e('x', EstadoEncomienda.disponible, DateTime(2026));
-    final cancelada = conEstado(original, EstadoEncomienda.cancelada);
-    expect(cancelada.estado, EstadoEncomienda.cancelada);
-    expect(cancelada.id, 'x');
-    expect(cancelada.creadaEn, DateTime(2026));
+    final retirada = conEstado(original, EstadoEncomienda.vencida);
+    expect(retirada.estado, EstadoEncomienda.vencida);
+    expect(retirada.id, 'x');
+    expect(retirada.creadaEn, DateTime(2026));
   });
 }

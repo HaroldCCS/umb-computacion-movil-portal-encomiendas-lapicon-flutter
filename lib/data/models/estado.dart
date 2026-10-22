@@ -1,10 +1,12 @@
-/// Estados de una encomienda (ver docs/03 §3.4).
+/// Estados de una encomienda (ver docs/03 §3.4). Son los únicos que acepta
+/// `PUT /api/encomiendas/:id/estado` (confirmado 22-oct-2026): el backend no
+/// tiene "cancelada"; retirar una encomienda la deja `vencida`.
 enum EstadoEncomienda {
   disponible('Disponible'),
   tomada('En camino'),
   entregada('Entregada'),
+  recibida('Recibida'),
   vencida('Vencida'),
-  cancelada('Cancelada'),
   desconocido('Sin estado');
 
   const EstadoEncomienda(this.etiqueta);
@@ -16,6 +18,9 @@ enum EstadoEncomienda {
   String get apiValue => name;
 
   bool get activa => this == disponible || this == tomada;
+
+  /// Ya llegó a su destino (entregada por el viajero o recibida).
+  bool get finalizada => this == entregada || this == recibida;
 
   static EstadoEncomienda parse(Object? value) {
     final v = value?.toString().trim().toLowerCase() ?? '';

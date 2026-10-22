@@ -23,7 +23,7 @@ class StatusChip extends StatelessWidget {
         AppColors.estadoEntregada,
       ),
       EstadoEncomienda.vencida => (Icons.event_busy, AppColors.estadoVencida),
-      EstadoEncomienda.cancelada => (Icons.cancel, AppColors.estadoCancelada),
+      EstadoEncomienda.recibida => (Icons.done_all, AppColors.estadoEntregada),
       EstadoEncomienda.desconocido => (
         Icons.help_outline,
         AppColors.estadoVencida,
@@ -72,8 +72,10 @@ class StatusChip extends StatelessWidget {
             const SizedBox(width: AppSpacing.xxs),
             Text(
               label,
-              style: Theme.of(context).textTheme.labelMedium
-                  ?.copyWith(color: fg, fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),

@@ -41,7 +41,8 @@ class _EncomiendaDetalleScreenState
       context,
       titulo: '¿Cancelar la encomienda?',
       mensaje:
-          'Los viajeros dejarán de verla. Esta acción no se puede deshacer.',
+          'Los viajeros dejarán de verla y quedará en tu historial como '
+          'vencida. Esta acción no se puede deshacer.',
       confirmarLabel: 'Sí, cancelar',
       destructivo: true,
     );
@@ -50,12 +51,13 @@ class _EncomiendaDetalleScreenState
     try {
       final actualizada = await ref
           .read(encomiendaRepositoryProvider)
-          .cambiarEstado(_e.id, EstadoEncomienda.cancelada);
+          // El backend no tiene "cancelada": retirarla la deja vencida.
+          .cambiarEstado(_e.id, EstadoEncomienda.vencida);
       if (!mounted) return;
       setState(() {
         _e = (actualizada != null && actualizada.id.isNotEmpty)
             ? actualizada
-            : conEstado(_e, EstadoEncomienda.cancelada);
+            : conEstado(_e, EstadoEncomienda.vencida);
         _cambio = true;
       });
       showAppSnackBar(context, 'Encomienda cancelada');
@@ -221,7 +223,7 @@ class _EncomiendaDetalleScreenState
             onPressed: _e.viajeroUid == null ? null : _abrirChat,
           ),
         ];
-      case EstadoEncomienda.entregada:
+      case EstadoEncomienda.entregada || EstadoEncomienda.recibida:
         return [
           if (_calificada)
             Text(
@@ -245,7 +247,6 @@ class _EncomiendaDetalleScreenState
           ],
         ];
       case EstadoEncomienda.vencida:
-      case EstadoEncomienda.cancelada:
       case EstadoEncomienda.desconocido:
         return const [];
     }

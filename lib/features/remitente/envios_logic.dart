@@ -15,10 +15,8 @@ enum PestanaEnvios {
 
   static PestanaEnvios de(EstadoEncomienda estado) => switch (estado) {
     EstadoEncomienda.disponible || EstadoEncomienda.tomada => activas,
-    EstadoEncomienda.entregada => entregadas,
-    EstadoEncomienda.vencida ||
-    EstadoEncomienda.cancelada ||
-    EstadoEncomienda.desconocido => historial,
+    EstadoEncomienda.entregada || EstadoEncomienda.recibida => entregadas,
+    EstadoEncomienda.vencida || EstadoEncomienda.desconocido => historial,
   };
 }
 
@@ -45,12 +43,13 @@ Map<PestanaEnvios, List<Encomienda>> agruparEnvios(List<Encomienda> lista) {
 const pasosEncomienda = ['Publicada', 'Tomada', 'Entregada', 'Calificada'];
 
 /// Índice del paso actual (0..3) o `null` si el estado es terminal sin
-/// entrega (vencida / cancelada / desconocido).
+/// entrega (vencida / desconocido).
 int? pasoActual(EstadoEncomienda estado, {bool calificada = false}) =>
     switch (estado) {
       EstadoEncomienda.disponible => 0,
       EstadoEncomienda.tomada => 1,
-      EstadoEncomienda.entregada => calificada ? 3 : 2,
+      EstadoEncomienda.entregada ||
+      EstadoEncomienda.recibida => calificada ? 3 : 2,
       _ => null,
     };
 

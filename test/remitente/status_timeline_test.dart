@@ -32,9 +32,12 @@ void main() {
 
   testWidgets('StatusTimeline muestra el estado terminal', (tester) async {
     await tester.pumpWidget(
-      _wrap(const StatusTimeline(estado: EstadoEncomienda.cancelada)),
+      _wrap(const StatusTimeline(estado: EstadoEncomienda.vencida)),
     );
-    expect(find.text('Cancelaste esta encomienda.'), findsOneWidget);
+    expect(
+      find.text('Ya no está publicada: venció o la retiraste.'),
+      findsOneWidget,
+    );
     expect(find.text('Publicada'), findsNothing);
   });
 
