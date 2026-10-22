@@ -125,7 +125,10 @@ class _ConViaje extends ConsumerWidget {
                 label: 'Vuelo',
                 value: viaje.numeroVuelo.isEmpty ? '—' : viaje.numeroVuelo,
               ),
-              TicketDetail(label: 'Fecha', value: Fmt.fecha(viaje.fechaViaje)),
+              TicketDetail(
+                label: 'Fecha',
+                value: Fmt.fecha(viaje.fechaViaje, corta: true),
+              ),
             ],
             trailing: StatusChip.viaje(viaje.estado),
           ),
@@ -190,50 +193,54 @@ class _HistorialTile extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
-      child: ExpansionTile(
-        shape: const Border(),
-        collapsedShape: const Border(),
-        leading: const Icon(Icons.history),
-        title: const Text('Historial de viajes'),
-        subtitle: historial.when(
-          data: (l) => Text(
-            l.isEmpty
-                ? 'Sin viajes registrados'
-                : '${l.length} ${l.length == 1 ? 'viaje' : 'viajes'}',
-          ),
-          loading: () => const Text('Cargando…'),
-          error: (_, _) => const Text('No disponible'),
-        ),
-        children: historial.when(
-          data: (lista) => [
-            for (final v in lista)
-              ListTile(
-                leading: Icon(
-                  Icons.flight,
-                  color: Rol.viajero.accent(theme.brightness),
-                ),
-                title: Text('${v.ciudadOrigen} → ${v.ciudadDestino}'),
-                subtitle: Text(
-                  '${v.numeroVuelo.isEmpty ? 'Vuelo' : v.numeroVuelo} · '
-                  '${Fmt.fecha(v.fechaViaje)}',
-                ),
-                trailing: StatusChip.viaje(v.estado),
-              ),
-          ],
-          loading: () => const [LinearProgressIndicator()],
-          error: (e, _) => [
-            ListTile(
-              title: Text(
-                e is AppException
-                    ? e.message
-                    : 'No pudimos cargar el historial.',
-              ),
-              trailing: TextButton(
-                onPressed: () => ref.invalidate(historialViajesProvider),
-                child: const Text('Reintentar'),
-              ),
+      // Material propio: el ListTile pinta su tinta encima del fondo.
+      child: Material(
+        type: MaterialType.transparency,
+        child: ExpansionTile(
+          shape: const Border(),
+          collapsedShape: const Border(),
+          leading: const Icon(Icons.history),
+          title: const Text('Historial de viajes'),
+          subtitle: historial.when(
+            data: (l) => Text(
+              l.isEmpty
+                  ? 'Sin viajes registrados'
+                  : '${l.length} ${l.length == 1 ? 'viaje' : 'viajes'}',
             ),
-          ],
+            loading: () => const Text('Cargando…'),
+            error: (_, _) => const Text('No disponible'),
+          ),
+          children: historial.when(
+            data: (lista) => [
+              for (final v in lista)
+                ListTile(
+                  leading: Icon(
+                    Icons.flight,
+                    color: Rol.viajero.accent(theme.brightness),
+                  ),
+                  title: Text('${v.ciudadOrigen} → ${v.ciudadDestino}'),
+                  subtitle: Text(
+                    '${v.numeroVuelo.isEmpty ? 'Vuelo' : v.numeroVuelo} · '
+                    '${Fmt.fecha(v.fechaViaje)}',
+                  ),
+                  trailing: StatusChip.viaje(v.estado),
+                ),
+            ],
+            loading: () => const [LinearProgressIndicator()],
+            error: (e, _) => [
+              ListTile(
+                title: Text(
+                  e is AppException
+                      ? e.message
+                      : 'No pudimos cargar el historial.',
+                ),
+                trailing: TextButton(
+                  onPressed: () => ref.invalidate(historialViajesProvider),
+                  child: const Text('Reintentar'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
