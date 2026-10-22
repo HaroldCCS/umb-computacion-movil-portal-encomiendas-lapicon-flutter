@@ -76,8 +76,9 @@ class VueloVerificadoBadge extends StatelessWidget {
             const SizedBox(width: AppSpacing.xxs),
             Text(
               'Vuelo verificado',
-              style: Theme.of(context).textTheme.labelLarge
-                  ?.copyWith(color: color),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: color),
             ),
           ],
         ),

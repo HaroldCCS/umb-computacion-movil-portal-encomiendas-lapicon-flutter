@@ -33,7 +33,6 @@ class EncomiendaRepository {
     required String observaciones,
     required String moneda,
     required num valor,
-    DateTime? fechaVencimiento,
   }) async {
     final json = await _api.post(
       '/api/encomiendas',
@@ -43,22 +42,23 @@ class EncomiendaRepository {
         observaciones: observaciones,
         moneda: moneda,
         valor: valor,
-        fechaVencimiento: fechaVencimiento,
       ),
     );
     return Encomienda.fromJson(json);
   }
 
   /// El viajero toma la encomienda (`PUT /api/encomiendas/tomar/:id`).
-  /// Endpoint documentado solo en el PDF: si responde 404, la vista debe
-  /// mostrar el mensaje del error sin romperse.
+  /// Responde solo `{ mensaje }` (sin la encomienda), así que suele devolver
+  /// `null` y la vista actualiza el estado localmente.
   Future<Encomienda?> tomar(String id) async {
     final json = await _api.put('/api/encomiendas/tomar/$id');
-    return json is Map ? Encomienda.fromJson(json) : null;
+    final e = json is Map ? Encomienda.fromJson(json) : null;
+    return (e != null && e.id.isNotEmpty) ? e : null;
   }
 
-  /// Cambia el estado (`PUT /api/encomiendas/:id/estado`), p. ej. `cancelada`
-  /// (remitente) o `entregada` (viajero asignado).
+  /// Cambia el estado (`PUT /api/encomiendas/:id/estado`), p. ej. `vencida`
+  /// (el remitente la retira) o `entregada` (viajero asignado). Responde
+  /// `{ mensaje, encomienda }`.
   Future<Encomienda?> cambiarEstado(String id, EstadoEncomienda estado) async {
     final json = await _api.put(
       '/api/encomiendas/$id/estado',

@@ -34,7 +34,6 @@ class _NuevaEncomiendaScreenState extends ConsumerState<NuevaEncomiendaScreen> {
   final _valor = TextEditingController();
   final _observaciones = TextEditingController();
   String _moneda = 'USD';
-  DateTime? _fechaLimite;
   bool _loading = false;
   bool _intentoEnviar = false;
 
@@ -65,19 +64,10 @@ class _NuevaEncomiendaScreenState extends ConsumerState<NuevaEncomiendaScreen> {
     _destino.text = o;
   }
 
-  Future<void> _elegirFecha() async {
+  /// El backend fija el vencimiento: un mes después de publicarla.
+  DateTime get _vence {
     final hoy = DateTime.now();
-    final manana = DateTime(hoy.year, hoy.month, hoy.day + 1);
-    final fecha = await showDatePicker(
-      context: context,
-      initialDate: _fechaLimite ?? manana.add(const Duration(days: 6)),
-      firstDate: manana,
-      lastDate: DateTime(hoy.year + 1, hoy.month, hoy.day),
-      helpText: 'Fecha límite de entrega',
-      cancelText: 'Cancelar',
-      confirmText: 'Elegir',
-    );
-    if (fecha != null) setState(() => _fechaLimite = fecha);
+    return DateTime(hoy.year, hoy.month + 1, hoy.day);
   }
 
   Future<void> _publicar() async {
@@ -99,7 +89,6 @@ class _NuevaEncomiendaScreenState extends ConsumerState<NuevaEncomiendaScreen> {
             observaciones: _observaciones.text.trim(),
             moneda: _moneda,
             valor: parseValor(_valor.text)!,
-            fechaVencimiento: _fechaLimite,
           );
       if (!mounted) return;
       showAppSnackBar(context, 'Encomienda publicada');
@@ -198,29 +187,22 @@ class _NuevaEncomiendaScreenState extends ConsumerState<NuevaEncomiendaScreen> {
               prefixIcon: Icons.notes,
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text('Fecha límite (opcional)', style: theme.textTheme.labelLarge),
-            const SizedBox(height: AppSpacing.xs),
             Row(
               children: [
+                Icon(
+                  Icons.event,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _elegirFecha,
-                    icon: const Icon(Icons.event),
-                    label: Text(
-                      _fechaLimite == null
-                          ? 'Elegir fecha'
-                          : Fmt.fecha(_fechaLimite),
+                  child: Text(
+                    'Estará publicada un mes: hasta el ${Fmt.fecha(_vence)}.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-                if (_fechaLimite != null) ...[
-                  const SizedBox(width: AppSpacing.xs),
-                  IconButton(
-                    tooltip: 'Quitar fecha límite',
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(() => _fechaLimite = null),
-                  ),
-                ],
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -241,9 +223,7 @@ class _NuevaEncomiendaScreenState extends ConsumerState<NuevaEncomiendaScreen> {
                   ),
                   TicketDetail(
                     label: 'Vence',
-                    value: _fechaLimite == null
-                        ? 'Sin fecha'
-                        : Fmt.fecha(_fechaLimite, corta: true),
+                    value: Fmt.fecha(_vence, corta: true),
                   ),
                 ],
               ),

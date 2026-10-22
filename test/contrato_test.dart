@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lapticon_app/core/utils/formatters.dart';
 import 'package:lapticon_app/data/models/encomienda.dart';
 import 'package:lapticon_app/data/models/estado.dart';
+import 'package:lapticon_app/data/models/usuario.dart';
 import 'package:lapticon_app/data/models/viaje.dart';
 import 'package:lapticon_app/data/repositories/chat_repository.dart';
 
@@ -137,6 +138,99 @@ void main() {
         'hace 3 h',
       );
       expect(Fmt.hora(DateTime(2026, 1, 1, 9, 5)), '09:05');
+    });
+  });
+
+  // Respuestas reales del backend (22-oct-2026, referencias/respuestas/).
+  group('Respuestas reales', () {
+    test('GET /api/users/:uid viene envuelto en "user" y sin rol', () {
+      final u = Usuario.fromJson({
+        'user': {
+          '_id': '6ada5bbe55174b0d3b920bae',
+          'uid': 'uidR',
+          '__v': 0,
+          'apellido': 'Prueba',
+          'createdAt': '2026-10-22T18:53:50.787Z',
+          'email': 'remitente@correo.com',
+          'nacionalidad': 'Colombia',
+          'nombre': 'Ana',
+          'telefono': '3000000000',
+        },
+      });
+      expect(u.uid, 'uidR');
+      expect(u.completo, isTrue);
+      expect(u.rol, isNull, reason: 'el backend ignora el campo rol');
+      expect(u.creadoEn, DateTime.utc(2026, 10, 22, 18, 53, 50, 787));
+    });
+
+    test('GET /api/encomiendas: remitente en uid y viajero en viajeroId', () {
+      final e = Encomienda.fromJson({
+        '_id': '6ada5d86a4012aeb7e63d853',
+        'uid': 'uidR',
+        'ciudadOrigen': 'Bogota',
+        'ciudadDestino': 'Miami',
+        'observaciones': 'Prueba Lapticon: libro pequeño',
+        'moneda': 'USD',
+        'valor': 15,
+        'estado': 'tomada',
+        'viajeroId': 'uidV',
+        'fechaCreacion': '2026-10-22T19:01:26.915Z',
+        'fechaVencimiento': '2026-11-22T19:01:26.915Z',
+        'fechaDisponibleDesde': '2026-10-22T19:01:26.915Z',
+        'fechaLimiteEntrega': null,
+        '__v': 0,
+      });
+      expect(e.remitenteUid, 'uidR');
+      expect(e.viajeroUid, 'uidV');
+      expect(e.creadaEn, DateTime.utc(2026, 10, 22, 19, 1, 26, 915));
+      expect(e.fechaVencimiento, DateTime.utc(2026, 11, 22, 19, 1, 26, 915));
+    });
+
+    test('GET /disponibles trae remitenteNombre y no el uid', () {
+      final e = Encomienda.fromJson({
+        '_id': '6ad95be0f8b6da54469cfc57',
+        'ciudadOrigen': 'Bogota',
+        'ciudadDestino': 'Miami',
+        'observaciones': 'demo taller flutter',
+        'valor': 10,
+        'moneda': 'USD',
+        'estado': 'disponible',
+        'remitenteNombre': 'Manuel',
+        'fechaCreacion': '2026-10-22T00:42:08.556Z',
+        'fechaVencimiento': '2026-11-22T00:42:08.556Z',
+      });
+      expect(e.remitenteUid, isNull);
+      expect(e.remitenteNombre, 'Manuel');
+    });
+
+    test('PUT /:id/estado responde { mensaje, encomienda }', () {
+      final e = Encomienda.fromJson({
+        'mensaje': 'Estado actualizado',
+        'encomienda': {'_id': 'e1', 'uid': 'uidR', 'estado': 'vencida'},
+      });
+      expect(e.id, 'e1');
+      expect(e.estado, EstadoEncomienda.vencida);
+    });
+
+    test('PUT /tomar/:id solo trae { mensaje } (sin encomienda)', () {
+      final e = Encomienda.fromJson({
+        'mensaje': 'Encomienda tomada exitosamente',
+      });
+      expect(e.id, isEmpty);
+    });
+
+    test('estados válidos del backend', () {
+      for (final v in [
+        'disponible',
+        'tomada',
+        'vencida',
+        'entregada',
+        'recibida',
+      ]) {
+        expect(EstadoEncomienda.parse(v), isNot(EstadoEncomienda.desconocido));
+        expect(EstadoEncomienda.parse(v).apiValue, v);
+      }
+      expect(EstadoEncomienda.parse('cancelada'), EstadoEncomienda.desconocido);
     });
   });
 }

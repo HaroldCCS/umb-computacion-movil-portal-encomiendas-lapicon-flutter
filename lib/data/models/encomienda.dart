@@ -1,8 +1,9 @@
 import 'estado.dart';
 import 'json_utils.dart';
 
-/// Encomienda (`/api/encomiendas`). El contrato de la respuesta no está
-/// 100 % confirmado, por eso la lectura es tolerante (docs/03 §3.3).
+/// Encomienda (`/api/encomiendas`). Forma confirmada (22-oct-2026): el
+/// remitente viene en `uid`, el viajero en `viajeroId`, y en
+/// `/disponibles` llega `remitenteNombre` pero no el `uid` (docs/03 §3.3).
 class Encomienda {
   const Encomienda({
     required this.id,
@@ -63,9 +64,9 @@ class Encomienda {
       valor: readNum(map, const ['valor', 'precio']) ?? 0,
       estado: EstadoEncomienda.parse(map['estado']),
       remitenteUid: remitente.$1,
-      remitenteNombre: remitente.$2,
+      remitenteNombre: remitente.$2 ?? _texto(map, 'remitenteNombre'),
       viajeroUid: viajero.$1,
-      viajeroNombre: viajero.$2,
+      viajeroNombre: viajero.$2 ?? _texto(map, 'viajeroNombre'),
       fechaVencimiento: readDate(map, const [
         'fechaVencimiento',
         'fechaLimite',
@@ -74,23 +75,26 @@ class Encomienda {
     );
   }
 
-  /// Cuerpo de `POST /api/encomiendas` (igual al de Postman).
+  /// Cuerpo de `POST /api/encomiendas` (igual al de Postman). El backend
+  /// ignora `fechaVencimiento`: siempre vence un mes después de creada.
   static Map<String, dynamic> crearBody({
     required String ciudadOrigen,
     required String ciudadDestino,
     required String observaciones,
     required String moneda,
     required num valor,
-    DateTime? fechaVencimiento,
   }) => {
     'ciudadOrigen': ciudadOrigen,
     'ciudadDestino': ciudadDestino,
     'observaciones': observaciones,
     'moneda': moneda,
     'valor': valor,
-    if (fechaVencimiento != null)
-      'fechaVencimiento': fechaVencimiento.toIso8601String().split('T').first,
   };
+
+  static String? _texto(Map<String, dynamic> map, String key) {
+    final v = readString(map, [key]);
+    return v.isEmpty ? null : v;
+  }
 
   /// Lee un campo que puede ser el uid (String) o el usuario "populado"
   /// (`{ uid, nombre, apellido }`). Devuelve (uid, nombre).
