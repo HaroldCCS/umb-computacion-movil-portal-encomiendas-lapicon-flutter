@@ -1,0 +1,122 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_tokens.dart';
+import '../../../data/models/estado.dart';
+import '../envios_logic.dart';
+
+/// Línea de tiempo vertical: Publicada → Tomada → Entregada → Calificada.
+/// Vencida y cancelada se muestran como estado final (docs/07 §7.5).
+class StatusTimeline extends StatelessWidget {
+  const StatusTimeline({
+    super.key,
+    required this.estado,
+    this.calificada = false,
+  });
+
+  final EstadoEncomienda estado;
+  final bool calificada;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final actual = pasoActual(estado, calificada: calificada);
+
+    if (actual == null) {
+      final cancelada = estado == EstadoEncomienda.cancelada;
+      final color = cancelada
+          ? AppColors.estadoCancelada
+          : AppColors.estadoVencida;
+      return Semantics(
+        label: 'Estado final: ${estado.etiqueta}',
+        excludeSemantics: true,
+        child: Row(
+          children: [
+            Icon(
+              cancelada ? Icons.cancel : Icons.event_busy,
+              color: _legible(context, color),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                cancelada
+                    ? 'Cancelaste esta encomienda.'
+                    : estado == EstadoEncomienda.vencida
+                    ? 'Venció sin que nadie la tomara.'
+                    : 'No conocemos el estado de esta encomienda.',
+                style: theme.textTheme.bodyLarge,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final hecho = _legible(context, AppColors.estadoEntregada);
+    final muted = theme.colorScheme.outlineVariant;
+    return Column(
+      children: [
+        for (var i = 0; i < pasosEncomienda.length; i++)
+          Semantics(
+            label:
+                '${pasosEncomienda[i]}: ${i < actual
+                    ? 'completado'
+                    : i == actual
+                    ? 'paso actual'
+                    : 'pendiente'}',
+            excludeSemantics: true,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 28,
+                    child: Column(
+                      children: [
+                        Icon(
+                          i < actual
+                              ? Icons.check_circle
+                              : i == actual
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked,
+                          size: 24,
+                          color: i <= actual ? hecho : muted,
+                        ),
+                        if (i < pasosEncomienda.length - 1)
+                          Expanded(
+                            child: Container(
+                              width: 2,
+                              color: i < actual ? hecho : muted,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: Text(
+                        pasosEncomienda[i],
+                        style: i == actual
+                            ? theme.textTheme.titleMedium
+                            : theme.textTheme.bodyLarge?.copyWith(
+                                color: i < actual
+                                    ? theme.colorScheme.onSurface
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  static Color _legible(BuildContext context, Color color) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? Color.lerp(color, Colors.white, 0.55)!
+      : color;
+}

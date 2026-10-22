@@ -1,0 +1,22 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+.DS_Store
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+*.keystore
+*.jks
+
+# Configuración de Firebase generada (contiene la API key del curso)
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist

@@ -1,0 +1,32 @@
+name: lapticon_app
+description: "Lapticon: tu encomienda viaja con alguien que ya va para allá. Proyecto de Computación Móvil (2.º corte)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.8.0
+
+# Las dependencias de pub.dev las agrega `setup.sh` con `flutter pub add`
+# para que queden en la última versión compatible con tu Flutter.
+dependencies:
+  cloud_firestore: ^7.0.0
+  firebase_auth: ^7.0.0
+  firebase_core: ^5.0.0
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^3.4.3
+  go_router: ^18.1.1
+  google_fonts: ^9.0.0
+  http: ^1.6.0
+  intl: ^0.20.3
+  shared_preferences: ^2.5.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
