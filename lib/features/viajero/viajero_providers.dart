@@ -55,13 +55,23 @@ final disponiblesEnMiRutaProvider =
     FutureProvider.autoDispose<List<Encomienda>>((ref) async {
       final viaje = await ref.watch(miViajeProvider.future);
       if (viaje == null) return const [];
-      final lista = await ref
-          .watch(encomiendaRepositoryProvider)
-          .disponibles(
-            origen: viaje.ciudadOrigen,
-            destino: viaje.ciudadDestino,
-          );
-      return paraTomar(lista, ref.watch(sessionProvider).user?.uid);
+      final repo = ref.watch(encomiendaRepositoryProvider);
+      final lista = await repo.disponibles(
+        origen: viaje.ciudadOrigen,
+        destino: viaje.ciudadDestino,
+      );
+      // Mis encomiendas como remitente, para no ofrecérmelas a mí mismo.
+      var propias = <String>{};
+      try {
+        propias = {for (final e in await repo.mias()) e.id};
+      } on AppException {
+        // Si falla, se muestran igual; el remitente no debería tomarlas.
+      }
+      return paraTomar(
+        lista,
+        ref.watch(sessionProvider).user?.uid,
+        idsPropios: propias,
+      );
     });
 
 /// Refresca todo lo del viajero después de una acción (tomar, entregar…).

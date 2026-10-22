@@ -95,6 +95,18 @@ void main() {
     expect(r.map((e) => e.id), ['a']);
   });
 
+  test('paraTomar excluye las propias aunque no traigan el uid', () {
+    final r = paraTomar(
+      [
+        _e('a', estado: EstadoEncomienda.disponible),
+        _e('mia', estado: EstadoEncomienda.disponible),
+      ],
+      'yo',
+      idsPropios: {'mia'},
+    );
+    expect(r.map((e) => e.id), ['a']);
+  });
+
   test('tomadaPorMi y conEstado', () {
     final e = _e('x', viajero: null, estado: EstadoEncomienda.disponible);
     expect(tomadaPorMi(e, 'yo', {}), isFalse);

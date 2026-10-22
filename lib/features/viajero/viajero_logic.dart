@@ -70,12 +70,19 @@ int _prioridad(EstadoEncomienda e) => switch (e) {
 };
 
 /// Encomiendas que el viajero puede tomar: disponibles y que no son suyas.
-List<Encomienda> paraTomar(List<Encomienda> lista, String? uid) => lista
+/// `/disponibles` no trae el uid del remitente, por eso también se excluyen
+/// los [idsPropios] (las que publiqué como remitente).
+List<Encomienda> paraTomar(
+  List<Encomienda> lista,
+  String? uid, {
+  Set<String> idsPropios = const {},
+}) => lista
     .where(
       (e) =>
           (e.estado == EstadoEncomienda.disponible ||
               e.estado == EstadoEncomienda.desconocido) &&
-          (uid == null || e.remitenteUid != uid),
+          (uid == null || e.remitenteUid != uid) &&
+          !idsPropios.contains(e.id),
     )
     .toList();
 
