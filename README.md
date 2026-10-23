@@ -29,7 +29,7 @@ flutter run
 
 Para apuntar a otro backend: `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000`.
 
-## Qué hace hoy (Práctica 1)
+## Qué hace hoy
 
 | Flujo | Detalle |
 |---|---|
@@ -37,11 +37,11 @@ Para apuntar a otro backend: `flutter run --dart-define=API_BASE_URL=http://10.0
 | Iniciar sesión / recuperar contraseña | Errores de Firebase traducidos; la recuperación no revela si el correo existe |
 | Completar perfil (paso 1 de 2) | `POST /api/users/register` con nombre, apellido, teléfono y nacionalidad (buscador sobre `/api/ciudades/paises`) |
 | Elegir rol (paso 2 de 2) | Remitente o viajero; intenta guardarlo en el backend y siempre lo cachea en el teléfono (reto 1) |
-| Inicio por rol | Barra inferior propia de cada rol; las pestañas de las prácticas 3–5 muestran su estado vacío |
+| Inicio por rol | Barra flotante con botón "+" (nueva encomienda / registrar viaje); contadores de lo pendiente; avisos que llevan directo a calificar o entregar |
 | Perfil | `GET /api/users/:uid` (primera llamada protegida), calificaciones (`GET /api/ratings/:uid`), editar (`PUT`), cambiar de rol, cerrar sesión |
 | Servidor dormido | Aviso "Despertando el servidor…" si una petición tarda más de 5 s |
-| Remitente (P3) | Mis envíos por estado, nueva encomienda, detalle con línea de tiempo, cancelar, buscar viajeros |
-| Viajero (P4) | Mi viaje, registrar viaje con verificación de vuelo, explorar encomiendas de la ruta, tomar, marcar entregada |
+| Remitente (P3) | Inicio con resumen, mis envíos por estado, nueva encomienda, detalle con línea de tiempo, retirar (escribiendo RETIRAR), buscar viajeros |
+| Viajero (P4) | Mi viaje, registrar viaje con verificación de vuelo (o "sin verificar"), explorar encomiendas de la ruta, tomar, marcar entregada (escribiendo ENTREGAR) |
 | Chat (P5) | Mensajes en tiempo real en Firestore (`chats/{uid1_uid2}/mensajes`), lista de chats, envío bloqueado si el chat está cerrado |
 | Calificaciones (P6) | Calificar con estrellas y comentario, reseñas recibidas desde el perfil |
 | Asistente IA | Chat con `POST /api/chatbot`, sugerencias según el rol |
@@ -56,9 +56,9 @@ lib/
 │   ├── config/env.dart           URL base y tiempos de espera
 │   ├── network/                  ApiClient (Bearer, reintento 401, errores) y excepciones
 │   ├── router/app_router.dart    go_router + redirección según la sesión
-│   ├── theme/                    Tokens del sistema de diseño y tema Material 3
+│   ├── theme/                    tema.dart (tokens Colores, Medidas, Movimiento, construirTema) y vocabulario por rol
 │   ├── utils/validators.dart     Validaciones puras de formularios
-│   └── widgets/                  AppTextField, PrimaryButton, RouteTicket, estados vacío/error…
+│   └── widgets/                  Sistema v2: Pantalla, BarraPestanas, TarjetaHero, RouteTicket, Boton, Campo, Grupo, Aviso, hojas, toasts…
 ├── data/
 │   ├── models/                   Usuario, Rol, ResumenCalificaciones (fromJson tolerante)
 │   ├── local/prefs.dart          Caché local (rol, países/ciudades)
@@ -80,7 +80,11 @@ flutter test
 - `validators_test.dart`, `models_test.dart`: lógica pura.
 - `api_client_test.dart`: Bearer, rutas públicas, reintento ante 401, mensajes de error (con `MockClient`).
 - `router_redirect_test.dart`: reglas de navegación.
-- `widget_test.dart`: validación al salir del campo, botón con carga, accesibilidad (contraste y área táctil en tema claro y oscuro).
+- `theme/tema_test.dart`: contraste AA de cada par de colores (claro y oscuro) y del texto sobre los degradados.
+- `widgets/`: cada componente del sistema v2 (contraste, 48 dp, lector de pantalla, "reducir movimiento").
+- `accesibilidad_test.dart`: barrido de las pantallas principales en claro/oscuro y con letra al doble en 360 dp.
+- Por funcionalidad (`auth/`, `home/`, `remitente/`, `viajero/`, `perfil/`, `chat/`, …): flujos con repositorios
+  falsos, sin Firebase ni red.
 
 ## Problemas comunes
 
@@ -92,4 +96,5 @@ flutter test
 | `CONFIGURATION_NOT_FOUND` / error de API key al iniciar sesión | El `applicationId` no coincide: debe ser `com.lapticon.app` |
 | La primera carga tarda mucho | Normal: el backend gratuito de Render "despierta" en 30–60 s |
 
-Diseño: ver `../docs/07-diseno-ux-ui.md`. Planeación y contrato de la API: `../docs/`.
+Diseño: sistema v2 en `../docs/07-diseno-ux-ui.md` (por qué y cómo se rediseñó: `../docs/08-plan-rediseno-ui.md`).
+Planeación y contrato de la API: `../docs/`.
