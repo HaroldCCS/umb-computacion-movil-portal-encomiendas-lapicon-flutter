@@ -7,8 +7,8 @@ import '../../../core/widgets/aviso.dart';
 import '../../../core/widgets/boton.dart';
 import '../../../core/widgets/campo.dart';
 import '../../../core/widgets/esqueleto.dart';
+import '../../../core/widgets/fila_opcion.dart';
 import '../../../core/widgets/hoja.dart';
-import '../../../core/widgets/presionable.dart';
 import '../../../providers.dart';
 
 /// Abre un buscador de países (`/api/ciudades/paises`) en una hoja inferior.
@@ -149,63 +149,12 @@ class _PaisPickerState extends ConsumerState<_PaisPicker> {
       itemCount: filtrados.length,
       itemBuilder: (context, i) {
         final pais = filtrados[i];
-        return _FilaPais(
-          pais: pais,
-          seleccionado: pais == widget.actual,
+        return FilaOpcion(
+          texto: pais,
+          seleccionada: pais == widget.actual,
           onTap: () => Navigator.of(context).pop(pais),
         );
       },
-    );
-  }
-}
-
-class _FilaPais extends StatelessWidget {
-  const _FilaPais({
-    required this.pais,
-    required this.seleccionado,
-    required this.onTap,
-  });
-
-  final String pais;
-  final bool seleccionado;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    return Semantics(
-      button: true,
-      selected: seleccionado,
-      label: pais,
-      onTap: onTap,
-      excludeSemantics: true,
-      child: Presionable(
-        onTap: onTap,
-        escala: 0.99,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: Medidas.alturaFila),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: c.separador)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  pais,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: seleccionado ? FontWeight.w600 : null,
-                    color: seleccionado ? c.marca : c.texto,
-                  ),
-                ),
-              ),
-              if (seleccionado) Icon(Icons.check_rounded, color: c.marca),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

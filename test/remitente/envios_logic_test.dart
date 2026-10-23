@@ -48,12 +48,15 @@ void main() {
 
   group('validación del formulario', () {
     test('valor', () {
-      expect(parseValor('12,5'), 12.5);
+      // El CampoMonto agrupa miles con punto: "1.234" es 1234.
+      expect(parseValor('1.234'), 1234);
       expect(parseValor('50000'), 50000);
+      expect(parseValor(''), isNull);
       expect(validarValor('10'), isNull);
+      expect(validarValor('1.500.000'), isNull);
       expect(validarValor(''), isNotNull);
       expect(validarValor('0'), isNotNull);
-      expect(validarValor('1.2.3'), isNotNull);
+      expect(validarValor('200.000.000'), isNotNull);
     });
     test('observaciones', () {
       expect(validarObservaciones('Un libro'), isNull);

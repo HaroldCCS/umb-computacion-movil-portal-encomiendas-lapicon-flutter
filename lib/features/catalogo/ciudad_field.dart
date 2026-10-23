@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/validators.dart';
-import '../../core/widgets/app_text_field.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../../core/widgets/campo.dart';
+import '../../core/widgets/esqueleto.dart';
+import '../../core/widgets/fila_opcion.dart';
+import '../../core/widgets/hoja.dart';
 import '../../providers.dart';
 
 /// Campo para elegir una ciudad de `/api/ciudades/ciudades`. Se elige de la
@@ -28,16 +33,16 @@ class CiudadField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppTextField(
-      label: label,
-      controller: controller,
-      hint: hint,
-      readOnly: true,
-      prefixIcon: icon,
-      showValidCheck: false,
-      suffix: const Icon(Icons.expand_more),
-      validator: (v) => Validators.requerido(v, label),
-      onTap: () async {
+    return Campo(
+      etiqueta: label,
+      controlador: controller,
+      pista: hint,
+      soloLectura: true,
+      icono: icon,
+      checkValido: false,
+      sufijo: const Icon(Icons.expand_more),
+      validador: (v) => Validators.requerido(v, label),
+      alTocar: () async {
         final ciudad = await showCiudadPicker(
           context,
           titulo: label,
@@ -57,28 +62,16 @@ Future<String?> showCiudadPicker(
   BuildContext context, {
   required String titulo,
   String? actual,
-}) {
-  return showModalBottomSheet<String>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppRadius.sheet),
-      ),
-    ),
-    builder: (context) => FractionallySizedBox(
-      heightFactor: 0.9,
-      child: _CiudadPicker(titulo: titulo, actual: actual),
-    ),
-  );
-}
+}) => mostrarHoja<String>(
+  context,
+  titulo: titulo,
+  altoCompleto: true,
+  contenido: _CiudadPicker(actual: actual),
+);
 
 class _CiudadPicker extends ConsumerStatefulWidget {
-  const _CiudadPicker({required this.titulo, this.actual});
+  const _CiudadPicker({this.actual});
 
-  final String titulo;
   final String? actual;
 
   @override
@@ -108,93 +101,81 @@ class _CiudadPickerState extends ConsumerState<_CiudadPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final ciudades = ref.watch(ciudadesProvider);
     final q = _norm(_query.text);
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text(widget.titulo, style: theme.textTheme.titleLarge),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+    Widget relleno(Widget hijo) => SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+      child: hijo,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Semantics(
+            label: 'Buscar ciudad',
             child: TextField(
               controller: _query,
               autofocus: true,
               textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Buscar ciudad (p. ej. "Bogota", "Miami")',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerLowest,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.field),
-                ),
+              style: TextStyle(fontSize: 17, color: context.c.texto),
+              decoration: decoracionCampo(
+                context,
+                pista: 'Buscar ciudad (p. ej. "Bogota")',
+                prefijo: Icon(Icons.search, color: context.c.texto2),
               ),
               onChanged: (_) => setState(() {}),
             ),
           ),
-          Expanded(
-            child: ciudades.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  children: [
-                    Text(
-                      e is AppException
-                          ? e.message
-                          : 'No pudimos cargar las ciudades.',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    FilledButton.tonal(
-                      onPressed: () => ref.invalidate(ciudadesProvider),
-                      child: const Text('Reintentar'),
-                    ),
-                  ],
+        ),
+        Expanded(
+          child: switch (ciudades) {
+            AsyncData(value: final lista) => () {
+              final filtradas = q.isEmpty
+                  ? lista
+                  : lista.where((c) => _norm(c).contains(q)).toList();
+              if (filtradas.isEmpty) {
+                return relleno(
+                  Aviso(
+                    'No encontramos "${_query.text.trim()}". Prueba sin '
+                    'tildes o con el nombre en inglés.',
+                  ),
+                );
+              }
+              return ListView.builder(
+                padding: EdgeInsets.only(
+                  bottom: 20 + MediaQuery.paddingOf(context).bottom,
+                ),
+                itemCount: filtradas.length,
+                itemBuilder: (context, i) => FilaOpcion(
+                  texto: filtradas[i],
+                  icono: Icons.location_city_outlined,
+                  seleccionada: filtradas[i] == widget.actual,
+                  onTap: () => Navigator.of(context).pop(filtradas[i]),
+                ),
+              );
+            }(),
+            AsyncError(:final error) => relleno(
+              Aviso(
+                error is AppException
+                    ? error.message
+                    : 'No pudimos cargar las ciudades.',
+                tipo: TipoAviso.error,
+                accion: Boton(
+                  'Reintentar',
+                  chico: true,
+                  ancho: false,
+                  variante: VarianteBoton.secundario,
+                  onTap: () => ref.invalidate(ciudadesProvider),
                 ),
               ),
-              data: (lista) {
-                final filtradas = q.isEmpty
-                    ? lista
-                    : lista.where((c) => _norm(c).contains(q)).toList();
-                if (filtradas.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Text(
-                      'No encontramos "${_query.text.trim()}". Prueba sin '
-                      'tildes o con el nombre en inglés.',
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  itemCount: filtradas.length,
-                  itemBuilder: (context, i) {
-                    final ciudad = filtradas[i];
-                    final sel = ciudad == widget.actual;
-                    return ListTile(
-                      leading: const Icon(Icons.location_city_outlined),
-                      title: Text(ciudad),
-                      selected: sel,
-                      trailing: sel
-                          ? Icon(Icons.check, color: theme.colorScheme.primary)
-                          : null,
-                      onTap: () => Navigator.of(context).pop(ciudad),
-                    );
-                  },
-                );
-              },
             ),
-          ),
-        ],
-      ),
+            _ => relleno(const EsqueletoLista(cantidad: 6, alto: 44)),
+          },
+        ),
+      ],
     );
   }
 }

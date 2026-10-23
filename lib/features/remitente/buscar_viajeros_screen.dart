@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
-import '../../core/widgets/feedback_views.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../../core/widgets/esqueleto.dart';
+import '../../core/widgets/insignia.dart';
+import '../../core/widgets/pantalla.dart';
 import '../../core/widgets/route_ticket.dart';
-import '../../core/widgets/status_chip.dart';
 import '../../data/models/viaje.dart';
 import '../catalogo/ciudad_field.dart';
+import 'envios_screen.dart';
 import 'remitente_providers.dart';
 import 'widgets/trust_row.dart';
 
@@ -32,93 +36,80 @@ class _BuscarViajerosScreenState extends ConsumerState<BuscarViajerosScreen> {
     super.dispose();
   }
 
+  Future<void> _refrescar(String ciudad) async {
+    ref.invalidate(viajerosPorOrigenProvider(ciudad));
+    try {
+      await ref.read(viajerosPorOrigenProvider(ciudad).future);
+    } on Object {
+      // El error se muestra en la propia pantalla.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final buscada = _buscada;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Buscar viajeros')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.md,
-              AppSpacing.md,
-              AppSpacing.xs,
-            ),
-            child: CiudadField(
-              label: '¿Desde dónde envías?',
-              controller: _ciudad,
-              hint: 'Elige la ciudad de origen',
-              icon: Icons.trip_origin,
-              onChanged: (c) => setState(() => _buscada = c),
-            ),
-          ),
-          Expanded(
-            child: buscada == null
-                ? const EmptyState(
-                    icon: Icons.travel_explore_outlined,
-                    title: 'Encuentra quién viaja',
-                    message:
-                        'Elige tu ciudad para ver los viajeros que salen de '
-                        'allí y sus calificaciones.',
-                  )
-                : _Resultados(ciudad: buscada),
-          ),
-        ],
+    return Pantalla(
+      titulo: 'Buscar viajeros',
+      textoAtras: 'Inicio',
+      subtitulo: 'Mira quién sale de tu ciudad y cómo lo califican.',
+      alActualizar: buscada == null ? null : () => _refrescar(buscada),
+      cabecera: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Medidas.margen),
+        child: CiudadField(
+          label: '¿Desde dónde envías?',
+          controller: _ciudad,
+          hint: 'Elige la ciudad de origen',
+          icon: Icons.trip_origin,
+          onChanged: (c) => setState(() => _buscada = c),
+        ),
       ),
+      hijos: buscada == null
+          ? const [
+              Vacio(
+                titulo: 'Encuentra quién viaja',
+                icono: Icons.travel_explore_outlined,
+                texto:
+                    'Elige tu ciudad para ver los viajeros que salen de allí '
+                    'y sus calificaciones.',
+              ),
+            ]
+          : _resultados(buscada),
     );
+  }
+
+  List<Widget> _resultados(String ciudad) {
+    return switch (ref.watch(viajerosPorOrigenProvider(ciudad))) {
+      AsyncData(value: final viajes) when viajes.isEmpty => [
+        Vacio(
+          titulo: 'Nadie viaja desde $ciudad por ahora',
+          icono: Icons.flight_takeoff,
+          texto:
+              'Publica tu encomienda igual: los viajeros que registren un '
+              'vuelo desde $ciudad la verán.',
+          accion: Boton(
+            'Publicar encomienda',
+            icono: Icons.add_rounded,
+            onTap: () => abrirNuevaEncomienda(context, ref),
+          ),
+        ),
+      ],
+      AsyncData(value: final viajes) => [
+        for (final v in viajes) _ViajeroCard(viaje: v),
+      ],
+      AsyncError(:final error) => [
+        ErrorCarga(
+          mensaje: error is AppException
+              ? error.message
+              : 'No pudimos buscar viajeros.',
+          alReintentar: () => ref.invalidate(viajerosPorOrigenProvider(ciudad)),
+        ),
+      ],
+      _ => [const EsqueletoLista(cantidad: 2, alto: 200)],
+    };
   }
 }
 
-class _Resultados extends ConsumerWidget {
-  const _Resultados({required this.ciudad});
-
-  final String ciudad;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final resultado = ref.watch(viajerosPorOrigenProvider(ciudad));
-    return resultado.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(semanticsLabel: 'Buscando viajeros'),
-      ),
-      error: (e, _) => ErrorView(
-        message: e is AppException ? e.message : 'No pudimos buscar viajeros.',
-        onRetry: () => ref.invalidate(viajerosPorOrigenProvider(ciudad)),
-      ),
-      data: (viajes) {
-        if (viajes.isEmpty) {
-          return EmptyState(
-            icon: Icons.flight_takeoff,
-            title: 'Nadie viaja desde $ciudad por ahora',
-            message:
-                'Publica tu encomienda igual: los viajeros que registren un '
-                'vuelo desde $ciudad la verán.',
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(viajerosPorOrigenProvider(ciudad));
-            try {
-              await ref.read(viajerosPorOrigenProvider(ciudad).future);
-            } on Object {
-              // Se muestra en la vista de error.
-            }
-          },
-          child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: viajes.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.lg),
-            itemBuilder: (context, i) => _ViajeroCard(viaje: viajes[i]),
-          ),
-        );
-      },
-    );
-  }
-}
-
+/// Viajero con su calificación arriba y el pase de su vuelo debajo.
 class _ViajeroCard extends StatelessWidget {
   const _ViajeroCard({required this.viaje});
 
@@ -132,16 +123,14 @@ class _ViajeroCard extends StatelessWidget {
       children: [
         if (uid != null)
           Padding(
-            padding: const EdgeInsets.only(
-              left: AppSpacing.xs,
-              bottom: AppSpacing.sm,
-            ),
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
             child: TrustRow(uid: uid, nombre: viaje.viajeroNombre),
           ),
         RouteTicket(
           origen: viaje.ciudadOrigen,
           destino: viaje.ciudadDestino,
           compact: true,
+          accent: context.c.viajero,
           details: [
             TicketDetail(
               label: 'Vuelo',
@@ -152,7 +141,7 @@ class _ViajeroCard extends StatelessWidget {
               value: Fmt.fecha(viaje.fechaViaje, corta: true),
             ),
           ],
-          trailing: StatusChip.viaje(viaje.estado),
+          trailing: Insignia.viaje(viaje.estado),
         ),
       ],
     );

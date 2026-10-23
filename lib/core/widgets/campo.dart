@@ -384,8 +384,23 @@ class CampoMonto extends StatelessWidget {
               border: InputBorder.none,
               hintText: '0',
               hintStyle: estilo.copyWith(color: c.texto3),
-              prefixText: '${moneda.toUpperCase()} ',
-              prefixStyle: estilo.copyWith(fontSize: 22, color: c.texto2),
+              // La moneda siempre visible (prefixText solo sale con foco) y
+              // un espacio igual a la derecha para que la cifra quede
+              // centrada.
+              prefixIcon: SizedBox(
+                width: 64,
+                child: Center(
+                  child: Text(
+                    moneda.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: c.texto2,
+                    ),
+                  ),
+                ),
+              ),
+              suffixIcon: const SizedBox(width: 64),
               errorStyle: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,

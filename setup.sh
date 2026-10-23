@@ -33,7 +33,7 @@ fi
 perl -pi -e 's/android:label="[^"]*"/android:label="Lapticon"/' "$MANIFEST"
 
 echo "==> Instalando dependencias"
-flutter pub add firebase_core firebase_auth cloud_firestore http flutter_riverpod go_router shared_preferences google_fonts intl
+flutter pub add firebase_core firebase_auth cloud_firestore http flutter_riverpod go_router shared_preferences google_fonts intl cupertino_icons
 flutter pub get
 
 echo "==> Configurando Firebase (lib/firebase_options.dart)"

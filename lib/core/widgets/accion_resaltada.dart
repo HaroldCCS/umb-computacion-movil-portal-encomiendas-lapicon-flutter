@@ -40,6 +40,8 @@ class _AccionResaltadaState extends State<AccionResaltada> {
 
   @override
   Widget build(BuildContext context) => Column(
+    // Mínimo: en el pie fijo de una Pantalla no debe ocupar toda la altura.
+    mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       if (widget.activa) ...[

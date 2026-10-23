@@ -53,17 +53,16 @@ int? pasoActual(EstadoEncomienda estado, {bool calificada = false}) =>
       _ => null,
     };
 
-/// Interpreta el valor escrito ("10", "12,5", "50000").
-num? parseValor(String? texto) {
-  final t = (texto ?? '').trim().replaceAll(' ', '').replaceAll(',', '.');
-  if (t.isEmpty) return null;
-  return num.tryParse(t);
+/// Valor del `CampoMonto` ("1.234.567" → 1234567). `null` si está vacío.
+/// Solo enteros: el pago al viajero no lleva centavos.
+int? parseValor(String? texto) {
+  final digitos = (texto ?? '').replaceAll(RegExp(r'[^\d]'), '');
+  return digitos.isEmpty ? null : int.tryParse(digitos);
 }
 
 String? validarValor(String? texto) {
   final v = parseValor(texto);
-  if ((texto ?? '').trim().isEmpty) return 'Escribe cuánto pagas por llevarla.';
-  if (v == null) return 'Usa solo números (p. ej. 10 o 12,50).';
+  if (v == null) return 'Escribe cuánto pagas por llevarla.';
   if (v <= 0) return 'El valor debe ser mayor que cero.';
   if (v > 100000000) return 'El valor es demasiado alto.';
   return null;

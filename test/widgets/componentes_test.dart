@@ -262,7 +262,7 @@ void main() {
       await tester.pump();
       expect(monto.text, '1.234.567');
       expect(CampoMonto.valorDe(monto), 1234567);
-      expect(find.text('COP '), findsOneWidget);
+      expect(find.text('COP'), findsOneWidget);
       expect(CampoMonto.valorDe(TextEditingController()), 0);
     });
   });
