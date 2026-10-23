@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_tokens.dart';
+import '../theme/tema.dart';
+import 'presionable.dart';
 
-/// Firma visual de Lapticon: la ruta como un pase de abordar (docs/07 §7.5).
+/// Firma visual de Lapticon: la ruta como un pase de abordar (docs/07 §7.5,
+/// re-estilo v2 de docs/08 §8.3).
 ///
 /// Arriba: ORIGEN → DESTINO en grande. Si hay [details] o [trailing], se
 /// dibuja una línea perforada con muescas laterales y la sección inferior.
@@ -26,7 +28,7 @@ class RouteTicket extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
 
-  /// Color del avión y la línea (por defecto, el acento terciario).
+  /// Color del avión y la línea (por defecto, `marca`).
   final Color? accent;
   final bool compact;
 
@@ -34,19 +36,15 @@ class RouteTicket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final c = context.c;
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
     final topHeight = (compact ? 84.0 : 104.0) * textScale;
-    final accentColor = accent ?? scheme.tertiary;
+    final accentColor = accent ?? c.marca;
 
     final top = SizedBox(
       height: topHeight,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
             Expanded(
@@ -75,17 +73,12 @@ class RouteTicket extends StatelessWidget {
         ExcludeSemantics(child: top),
         if (_hasBottom)
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              AppSpacing.md,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             child: Row(
               children: [
                 for (final d in details) ...[
                   Flexible(child: d),
-                  const SizedBox(width: AppSpacing.lg),
+                  const SizedBox(width: 20),
                 ],
                 const Spacer(),
                 ?trailing,
@@ -95,28 +88,24 @@ class RouteTicket extends StatelessWidget {
       ],
     );
 
+    final pase = CustomPaint(
+      painter: _TicketPainter(
+        fill: c.superficie,
+        // En claro la separación la da la sombra; en oscuro, el borde.
+        border: c.conSombra ? null : c.separador,
+        dash: c.separador,
+        notchY: _hasBottom ? topHeight : null,
+        shadows: c.sombraTarjeta,
+      ),
+      child: content,
+    );
+
     return Semantics(
       label: 'Ruta de $origen a $destino',
       button: onTap != null,
-      child: CustomPaint(
-        painter: _TicketPainter(
-          fill: scheme.surfaceContainerLowest,
-          border: scheme.outlineVariant,
-          dash: scheme.outlineVariant,
-          notchY: _hasBottom ? topHeight : null,
-          shadow: theme.brightness == Brightness.light,
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: onTap,
-            customBorder: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.card),
-            ),
-            child: content,
-          ),
-        ),
-      ),
+      child: onTap == null
+          ? pase
+          : Presionable(onTap: onTap, escala: 0.98, child: pase),
     );
   }
 }
@@ -130,17 +119,32 @@ class TicketDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final c = context.c;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label.toUpperCase(), style: t.labelSmall?.copyWith(color: muted)),
+        Text(
+          label.toUpperCase(),
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+            color: c.texto2,
+          ),
+        ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: t.titleMedium,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: c.texto,
+            fontFeatures: cifras,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -164,28 +168,35 @@ class _City extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final c = context.c;
     final alignment = alignEnd ? Alignment.centerRight : Alignment.centerLeft;
+    // Space Grotesk (estilo display) también en el pase compacto.
+    final estilo = context.t.displaySmall?.copyWith(
+      fontSize: compact ? 24 : 32,
+      height: 1.1,
+      color: c.texto,
+    );
     return Column(
       crossAxisAlignment: alignEnd
           ? CrossAxisAlignment.end
           : CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(label, style: t.labelSmall?.copyWith(color: muted)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+            color: c.texto2,
+          ),
+        ),
         const SizedBox(height: 2),
         Flexible(
           child: FittedBox(
             fit: BoxFit.scaleDown,
             alignment: alignment,
-            child: Text(
-              city,
-              maxLines: 1,
-              style: (compact ? t.headlineSmall : t.displaySmall)?.copyWith(
-                height: 1.1,
-              ),
-            ),
+            child: Text(city, maxLines: 1, style: estilo),
           ),
         ),
       ],
@@ -205,7 +216,7 @@ class _FlightPath extends StatelessWidget {
         children: [
           Expanded(child: _Dashes(color: color)),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Transform.rotate(
               angle: 1.5708, // 90°: el avión apunta hacia el destino
               child: Icon(Icons.flight, color: color, size: 22),
@@ -246,14 +257,14 @@ class _TicketPainter extends CustomPainter {
     required this.border,
     required this.dash,
     required this.notchY,
-    required this.shadow,
+    required this.shadows,
   });
 
   final Color fill;
-  final Color border;
+  final Color? border;
   final Color dash;
   final double? notchY;
-  final bool shadow;
+  final List<BoxShadow> shadows;
 
   static const _notchRadius = 10.0;
 
@@ -262,7 +273,7 @@ class _TicketPainter extends CustomPainter {
       ..addRRect(
         RRect.fromRectAndRadius(
           Offset.zero & size,
-          const Radius.circular(AppRadius.card),
+          const Radius.circular(Medidas.radioTarjeta),
         ),
       );
     final y = notchY;
@@ -278,17 +289,25 @@ class _TicketPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final path = _shape(size);
-    if (shadow) {
-      canvas.drawShadow(path, const Color(0x33000000), 3, false);
+    // Las mismas sombras que una Tarjeta, siguiendo la forma con muescas.
+    for (final s in shadows) {
+      canvas.drawPath(
+        path.shift(s.offset),
+        Paint()
+          ..color = s.color
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s.blurSigma),
+      );
     }
     canvas.drawPath(path, Paint()..color = fill);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = border
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
+    if (border != null) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = border!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
+    }
 
     final y = notchY;
     if (y != null) {
@@ -309,5 +328,5 @@ class _TicketPainter extends CustomPainter {
       old.border != border ||
       old.dash != dash ||
       old.notchY != notchY ||
-      old.shadow != shadow;
+      old.shadows != shadows;
 }

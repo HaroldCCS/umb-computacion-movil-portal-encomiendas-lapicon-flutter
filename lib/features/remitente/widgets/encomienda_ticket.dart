@@ -4,8 +4,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/route_ticket.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/encomienda.dart';
-import '../../../data/models/rol.dart';
-import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/tema.dart';
 
 /// Tarjeta-pase de una encomienda (FECHA · VALOR · estado).
 class EncomiendaTicket extends StatelessWidget {
@@ -28,10 +27,8 @@ class EncomiendaTicket extends StatelessWidget {
       origen: e.ciudadOrigen.isEmpty ? '—' : e.ciudadOrigen,
       destino: e.ciudadDestino.isEmpty ? '—' : e.ciudadDestino,
       compact: compact,
-      // Acento del remitente; en claro el ámbar oscuro para que se vea el avión.
-      accent: Theme.of(context).brightness == Brightness.dark
-          ? Rol.remitente.accent(Brightness.dark)
-          : AppColors.estadoTomada,
+      // Acento del remitente: ámbar oscuro en claro para que se vea el avión.
+      accent: context.c.atencion,
       onTap: onTap,
       details: [
         TicketDetail(

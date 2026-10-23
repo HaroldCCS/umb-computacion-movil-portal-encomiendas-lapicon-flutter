@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/tema.dart';
+import '../../../core/widgets/avatar.dart';
 import '../../../providers.dart';
 
-/// Avatar con iniciales · nombre · ★ promedio (total) — docs/07 §7.5.
+/// Avatar con iniciales (color estable por persona) · nombre · ★ promedio (total) — docs/07 §7.5.
 class TrustRow extends ConsumerWidget {
   const TrustRow({
     super.key,
@@ -19,22 +20,9 @@ class TrustRow extends ConsumerWidget {
   final String rolEtiqueta;
   final Widget? trailing;
 
-  static String iniciales(String? nombre, String fallback) {
-    final partes = (nombre ?? '')
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((p) => p.isNotEmpty)
-        .take(2)
-        .toList();
-    if (partes.isEmpty) return fallback.substring(0, 1).toUpperCase();
-    return partes
-        .map((p) => String.fromCharCode(p.runes.first).toUpperCase())
-        .join();
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final c = context.c;
     final resumen = ref.watch(resumenCalificacionesProvider(uid));
     final mostrado = (nombre?.trim().isNotEmpty ?? false)
         ? nombre!.trim()
@@ -54,32 +42,25 @@ class TrustRow extends ConsumerWidget {
       excludeSemantics: true,
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: theme.colorScheme.primary,
-            child: Text(
-              iniciales(nombre, rolEtiqueta),
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
+          Avatar(mostrado),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   mostrado,
-                  style: theme.textTheme.titleMedium,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: c.texto,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   calificacion,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: TextStyle(fontSize: 15, color: c.texto2),
                 ),
               ],
             ),

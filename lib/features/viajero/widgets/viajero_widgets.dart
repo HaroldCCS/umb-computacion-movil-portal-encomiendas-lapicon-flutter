@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/tema.dart';
+import '../../../core/widgets/avatar.dart';
+import '../../../core/widgets/insignia.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/route_ticket.dart';
 import '../../../core/widgets/status_chip.dart';
@@ -52,42 +55,14 @@ class VueloVerificadoBadge extends StatelessWidget {
   const VueloVerificadoBadge({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final color = dark
-        ? Color.lerp(AppColors.estadoEntregada, Colors.white, 0.55)!
-        : AppColors.estadoEntregada;
-    return Semantics(
-      label: 'Vuelo verificado',
-      excludeSemantics: true,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.verified, size: 18, color: color),
-            const SizedBox(width: AppSpacing.xxs),
-            Text(
-              'Vuelo verificado',
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(color: color),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const Insignia(
+    'Vuelo verificado',
+    icono: Icons.verified,
+    tipo: TipoInsignia.exito,
+  );
 }
 
-/// Fila de confianza: iniciales · nombre · ★ promedio (n calificaciones).
+/// Fila de confianza: avatar · nombre · ★ promedio (n calificaciones).
 class PersonaTrustRow extends ConsumerWidget {
   const PersonaTrustRow({
     super.key,
@@ -102,16 +77,9 @@ class PersonaTrustRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final c = context.c;
     final resumen = ref.watch(resumenCalificacionesProvider(uid));
     final mostrado = (nombre == null || nombre!.isEmpty) ? rolLabel : nombre!;
-    final iniciales = mostrado
-        .split(' ')
-        .where((p) => p.isNotEmpty)
-        .take(2)
-        .map((p) => String.fromCharCode(p.runes.first).toUpperCase())
-        .join();
-
     final calificacion = resumen.when(
       data: (r) => r.vacio
           ? 'Sin calificaciones aún'
@@ -126,16 +94,7 @@ class PersonaTrustRow extends ConsumerWidget {
       excludeSemantics: true,
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: theme.colorScheme.primary,
-            child: Text(
-              iniciales.isEmpty ? '?' : iniciales,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onPrimary,
-              ),
-            ),
-          ),
+          Avatar(mostrado),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
@@ -143,12 +102,25 @@ class PersonaTrustRow extends ConsumerWidget {
               children: [
                 Text(
                   rolLabel.toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.0,
+                    color: c.texto2,
                   ),
                 ),
-                Text(mostrado, style: theme.textTheme.titleMedium),
-                Text(calificacion, style: theme.textTheme.bodyMedium),
+                Text(
+                  mostrado,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: c.texto,
+                  ),
+                ),
+                Text(
+                  calificacion,
+                  style: TextStyle(fontSize: 15, color: c.texto2),
+                ),
               ],
             ),
           ),

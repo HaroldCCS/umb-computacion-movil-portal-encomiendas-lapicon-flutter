@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/tema.dart';
 import '../../../data/models/estado.dart';
 import '../envios_logic.dart';
 
@@ -19,17 +19,17 @@ class StatusTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final c = context.c;
     final actual = pasoActual(estado, calificada: calificada);
 
     if (actual == null) {
-      const color = AppColors.estadoVencida;
       return Semantics(
         label: 'Estado final: ${estado.etiqueta}',
         excludeSemantics: true,
         child: Row(
           children: [
-            Icon(Icons.event_busy, color: _legible(context, color)),
-            const SizedBox(width: AppSpacing.sm),
+            Icon(Icons.event_busy, color: c.texto2),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 estado == EstadoEncomienda.vencida
@@ -43,8 +43,8 @@ class StatusTimeline extends StatelessWidget {
       );
     }
 
-    final hecho = _legible(context, AppColors.estadoEntregada);
-    final muted = theme.colorScheme.outlineVariant;
+    final hecho = c.exito;
+    final muted = c.separador;
     return Column(
       children: [
         for (var i = 0; i < pasosEncomienda.length; i++)
@@ -83,18 +83,16 @@ class StatusTimeline extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
                         pasosEncomienda[i],
                         style: i == actual
                             ? theme.textTheme.titleMedium
                             : theme.textTheme.bodyLarge?.copyWith(
-                                color: i < actual
-                                    ? theme.colorScheme.onSurface
-                                    : theme.colorScheme.onSurfaceVariant,
+                                color: i < actual ? c.texto : c.texto2,
                               ),
                       ),
                     ),
@@ -106,9 +104,4 @@ class StatusTimeline extends StatelessWidget {
       ],
     );
   }
-
-  static Color _legible(BuildContext context, Color color) =>
-      Theme.of(context).brightness == Brightness.dark
-      ? Color.lerp(color, Colors.white, 0.55)!
-      : color;
 }
