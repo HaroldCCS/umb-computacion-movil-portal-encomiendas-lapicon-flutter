@@ -1,21 +1,23 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/validators.dart';
-import '../../core/widgets/app_text_field.dart';
-import '../../core/widgets/brand.dart';
-import '../../core/widgets/feedback_views.dart';
-import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../../core/widgets/campo.dart';
+import '../../core/widgets/hoja.dart';
+import '../../core/widgets/pantalla.dart';
+import '../../core/widgets/toast.dart';
 import '../../providers.dart';
 import '../catalogo/ciudad_field.dart';
 import 'viajero_logic.dart';
 import 'viajero_providers.dart';
-import 'widgets/viajero_widgets.dart';
 
 enum _Verificacion {
   ninguna,
@@ -46,6 +48,12 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
   _Verificacion _verificacion = _Verificacion.ninguna;
   List<String> _datosVuelo = const [];
 
+  /// Por qué no se pudo verificar (falta el número o la fecha).
+  String? _errorVerificar;
+
+  /// Error al registrar, junto al botón.
+  String? _error;
+
   @override
   void dispose() {
     _vuelo.dispose();
@@ -56,24 +64,26 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
   }
 
   void _resetVerificacion() {
-    if (_verificacion != _Verificacion.ninguna) {
+    if (_verificacion != _Verificacion.ninguna || _errorVerificar != null) {
       setState(() {
         _verificacion = _Verificacion.ninguna;
         _datosVuelo = const [];
+        _errorVerificar = null;
       });
     }
   }
 
+  /// Selector de fecha estilo iOS en una hoja (docs/08 §8.8-4).
   Future<void> _elegirFecha() async {
     final hoy = DateUtils.dateOnly(DateTime.now());
-    final elegida = await showDatePicker(
-      context: context,
-      initialDate: _fecha ?? hoy,
-      firstDate: hoy,
-      lastDate: hoy.add(const Duration(days: 365)),
-      helpText: 'Fecha del vuelo',
-      cancelText: 'Cancelar',
-      confirmText: 'Elegir',
+    final elegida = await mostrarHoja<DateTime>(
+      context,
+      titulo: 'Fecha del vuelo',
+      contenido: _SelectorFecha(
+        inicial: _fecha ?? hoy,
+        minima: hoy,
+        maxima: hoy.add(const Duration(days: 365)),
+      ),
     );
     if (elegida == null || !mounted) return;
     setState(() {
@@ -96,14 +106,16 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
     final errorVuelo = validarNumeroVuelo(_vuelo.text);
     final fecha = _fecha;
     if (errorVuelo != null || fecha == null) {
-      showAppSnackBar(
-        context,
-        errorVuelo ?? 'Elige la fecha del vuelo para verificarlo.',
-        error: true,
+      setState(
+        () => _errorVerificar =
+            errorVuelo ?? 'Elige la fecha del vuelo para verificarlo.',
       );
       return;
     }
-    setState(() => _verificacion = _Verificacion.verificando);
+    setState(() {
+      _verificacion = _Verificacion.verificando;
+      _errorVerificar = null;
+    });
     try {
       final json = await ref
           .read(viajeRepositoryProvider)
@@ -127,12 +139,14 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
 
   Future<void> _registrar() async {
     FocusScope.of(context).unfocus();
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _error = null);
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      setState(() => _error = 'Revisa los campos marcados en rojo.');
+      return;
+    }
     if (_origen.text == _destino.text) {
-      showAppSnackBar(
-        context,
-        'El origen y el destino deben ser ciudades distintas.',
-        error: true,
+      setState(
+        () => _error = 'El origen y el destino deben ser ciudades distintas.',
       );
       return;
     }
@@ -156,41 +170,35 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
       }
       refrescarViajero(ref);
       if (!mounted) return;
-      showAppSnackBar(context, 'Viaje registrado. ¡Buen vuelo!');
+      mostrarToast(context, 'Viaje registrado. ¡Buen vuelo!');
       context.pop();
     } on ApiException catch (e) {
       if (!mounted) return;
       if (e.isBusinessRule) {
+        // El botón deja de cargar antes de abrir la hoja.
+        setState(() => _loading = false);
         await _mostrarReglaNegocio(e.message);
       } else {
-        showAppSnackBar(context, e.message, error: true);
+        setState(() => _error = e.message);
       }
     } on AppException catch (e) {
-      if (mounted) showAppSnackBar(context, e.message, error: true);
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  /// Regla del backend (p. ej. "Ya tienes un viaje activo"): se explica en
+  /// una hoja con el camino a seguir.
   Future<void> _mostrarReglaNegocio(String mensaje) async {
-    final verViaje = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('No pudimos registrar el viaje'),
-        content: Text(mensaje),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cerrar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Ver mi viaje'),
-          ),
-        ],
-      ),
+    final verViaje = await confirmarConHoja(
+      context,
+      titulo: 'No pudimos registrar el viaje',
+      mensaje: mensaje,
+      confirmarTexto: 'Ver mi viaje',
+      cancelarTexto: 'Cerrar',
     );
-    if (verViaje == true && mounted) {
+    if (verViaje && mounted) {
       refrescarViajero(ref);
       context.pop();
     }
@@ -198,198 +206,222 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Registrar viaje')),
-      body: Form(
-        key: _formKey,
-        child: FormPage(
-          children: [
-            Text('Cuéntanos de tu vuelo', style: theme.textTheme.headlineSmall),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Lo verificamos con la aerolínea para que los remitentes '
-              'confíen en ti.',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+    return Form(
+      key: _formKey,
+      child: Pantalla(
+        titulo: 'Registrar viaje',
+        textoAtras: 'Mi viaje',
+        subtitulo:
+            'Lo verificamos con la aerolínea para que los remitentes '
+            'confíen en ti.',
+        hijos: [
+          // Un solo bloque: así todos los campos existen al validar.
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Campo(
+                etiqueta: 'Número de vuelo',
+                controlador: _vuelo,
+                pista: 'AV24',
+                ayuda:
+                    'Código de la aerolínea y número, como aparece en tu '
+                    'pasabordo.',
+                icono: Icons.confirmation_number_outlined,
+                capitalizacion: TextCapitalization.characters,
+                formateadores: [
+                  FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9 ]')),
+                  const _MayusculasFormatter(),
+                  LengthLimitingTextInputFormatter(8),
+                ],
+                validador: validarNumeroVuelo,
+                alCambiar: (_) => _resetVerificacion(),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            AppTextField(
-              label: 'Número de vuelo',
-              controller: _vuelo,
-              hint: 'AV24',
-              helper:
-                  'Código de la aerolínea y número, como aparece en tu '
-                  'pasabordo.',
-              prefixIcon: Icons.confirmation_number_outlined,
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9 ]')),
-                const _MayusculasFormatter(),
-                LengthLimitingTextInputFormatter(8),
+              const SizedBox(height: 16),
+              Campo(
+                etiqueta: 'Fecha del vuelo',
+                controlador: _fechaTexto,
+                pista: 'Elige la fecha',
+                soloLectura: true,
+                alTocar: _elegirFecha,
+                icono: Icons.event_outlined,
+                checkValido: false,
+                sufijo: const Icon(Icons.expand_more),
+                validador: (v) => Validators.requerido(v, 'La fecha'),
+              ),
+              const SizedBox(height: 16),
+              CiudadField(
+                label: 'Ciudad de origen',
+                controller: _origen,
+                icon: Icons.flight_takeoff,
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: BotonIcono(
+                  icono: Icons.swap_vert,
+                  etiqueta: 'Intercambiar origen y destino',
+                  borde: false,
+                  onTap: _intercambiar,
+                ),
+              ),
+              CiudadField(
+                label: 'Ciudad de destino',
+                controller: _destino,
+                icon: Icons.flight_land,
+              ),
+              const SizedBox(height: 24),
+              _EstadoVerificacion(
+                estado: _verificacion,
+                datos: _datosVuelo,
+                error: _errorVerificar,
+                onVerificar: _loading ? null : _verificar,
+              ),
+              const SizedBox(height: 28),
+              if (_error != null) ...[
+                Aviso(_error!, tipo: TipoAviso.error),
+                const SizedBox(height: 12),
               ],
-              validator: validarNumeroVuelo,
-              onChanged: (_) => _resetVerificacion(),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            AppTextField(
-              label: 'Fecha del vuelo',
-              controller: _fechaTexto,
-              hint: 'Elige la fecha',
-              readOnly: true,
-              onTap: _elegirFecha,
-              prefixIcon: Icons.event_outlined,
-              showValidCheck: false,
-              suffix: const Icon(Icons.expand_more),
-              validator: (v) => Validators.requerido(v, 'La fecha'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            CiudadField(
-              label: 'Ciudad de origen',
-              controller: _origen,
-              icon: Icons.flight_takeoff,
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                tooltip: 'Intercambiar origen y destino',
-                icon: const Icon(Icons.swap_vert),
-                onPressed: _intercambiar,
+              Boton(
+                'Registrar viaje',
+                icono: Icons.flight_takeoff,
+                textoCargando: 'Registrando…',
+                cargando: _loading,
+                onTap: _verificacion == _Verificacion.verificando
+                    ? null
+                    : _registrar,
               ),
-            ),
-            CiudadField(
-              label: 'Ciudad de destino',
-              controller: _destino,
-              icon: Icons.flight_land,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _VerificacionCard(
-              estado: _verificacion,
-              datos: _datosVuelo,
-              onVerificar: _loading ? null : _verificar,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            PrimaryButton(
-              label: 'Registrar viaje',
-              icon: Icons.flight_takeoff,
-              loading: _loading,
-              onPressed: _verificacion == _Verificacion.verificando
-                  ? null
-                  : _registrar,
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _VerificacionCard extends StatelessWidget {
-  const _VerificacionCard({
+/// Estado de la verificación del vuelo. Si no se pudo verificar, se dice
+/// claro que el viaje quedará "sin verificar" (docs/08 §8.1).
+class _EstadoVerificacion extends StatelessWidget {
+  const _EstadoVerificacion({
     required this.estado,
     required this.datos,
+    required this.error,
     required this.onVerificar,
   });
 
   final _Verificacion estado;
   final List<String> datos;
+  final String? error;
   final VoidCallback? onVerificar;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    Widget reintentar(String texto) => Boton(
+      texto,
+      chico: true,
+      ancho: false,
+      variante: VarianteBoton.secundario,
+      onTap: onVerificar,
+    );
+
     final Widget contenido = switch (estado) {
-      _Verificacion.ninguna => OutlinedButton.icon(
-        onPressed: onVerificar,
-        icon: const Icon(Icons.verified_outlined),
-        label: const Text('Verificar vuelo'),
-      ),
-      _Verificacion.verificando => const Row(
+      _Verificacion.ninguna || _Verificacion.verificando => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox.square(
-            dimension: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
+          Boton(
+            'Verificar vuelo',
+            icono: Icons.verified_outlined,
+            variante: VarianteBoton.tonal,
+            textoCargando: 'Verificando vuelo…',
+            cargando: estado == _Verificacion.verificando,
+            onTap: onVerificar,
           ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text('Verificando vuelo…')),
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Aviso(error!, tipo: TipoAviso.error),
+          ],
         ],
       ),
-      _Verificacion.verificado => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const VueloVerificadoBadge(),
-          for (final d in datos)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xs),
-              child: Text(d, style: theme.textTheme.bodyMedium),
-            ),
-        ],
+      _Verificacion.verificado => Aviso(
+        datos.isEmpty ? 'La aerolínea confirma tu vuelo.' : datos.join('\n'),
+        titulo: 'Vuelo verificado',
+        tipo: TipoAviso.exito,
       ),
-      _Verificacion.noEncontrado => _AvisoVerificacion(
-        icon: Icons.search_off,
-        texto:
-            'No encontramos ese vuelo para esa fecha. Revisa el número y la '
-            'fecha; si estás seguro, puedes registrarlo igual.',
-        onVerificar: onVerificar,
+      _Verificacion.noEncontrado => Aviso(
+        'No encontramos ese vuelo para esa fecha. Revisa el número y la '
+        'fecha; si estás seguro, puedes registrarlo igual y aparecerá como '
+        '"sin verificar".',
+        titulo: 'Vuelo no encontrado',
+        tipo: TipoAviso.atencion,
+        accion: reintentar('Intentar de nuevo'),
       ),
-      _Verificacion.noDisponible => _AvisoVerificacion(
-        icon: Icons.cloud_off_outlined,
-        texto:
-            'Ahora no pudimos verificar el vuelo. Puedes registrarlo igual: '
-            'el servidor también lo valida.',
-        onVerificar: onVerificar,
+      _Verificacion.noDisponible => Aviso(
+        'Ahora no pudimos verificar el vuelo. Puedes registrarlo igual: '
+        'aparecerá como "sin verificar".',
+        titulo: 'Verificación no disponible',
+        tipo: TipoAviso.atencion,
+        accion: reintentar('Intentar de nuevo'),
       ),
     };
 
     return Semantics(
       liveRegion: true,
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        child: KeyedSubtree(key: ValueKey(estado), child: contenido),
+        duration: Movimiento.duracion(
+          context,
+          const Duration(milliseconds: 200),
+        ),
+        child: KeyedSubtree(
+          key: ValueKey(
+            estado == _Verificacion.verificando
+                ? _Verificacion.ninguna
+                : estado,
+          ),
+          child: contenido,
+        ),
       ),
     );
   }
 }
 
-class _AvisoVerificacion extends StatelessWidget {
-  const _AvisoVerificacion({
-    required this.icon,
-    required this.texto,
-    required this.onVerificar,
+/// Contenido de la hoja de fecha: rueda de iOS y botón para confirmar.
+class _SelectorFecha extends StatefulWidget {
+  const _SelectorFecha({
+    required this.inicial,
+    required this.minima,
+    required this.maxima,
   });
 
-  final IconData icon;
-  final String texto;
-  final VoidCallback? onVerificar;
+  final DateTime inicial;
+  final DateTime minima;
+  final DateTime maxima;
+
+  @override
+  State<_SelectorFecha> createState() => _SelectorFechaState();
+}
+
+class _SelectorFechaState extends State<_SelectorFecha> {
+  late DateTime _fecha = widget.inicial;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadius.field),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: AppColors.estadoTomada),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: Text(texto, style: theme.textTheme.bodyMedium)),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 216,
+          child: CupertinoDatePicker(
+            mode: CupertinoDatePickerMode.date,
+            initialDateTime: widget.inicial,
+            minimumDate: widget.minima,
+            maximumDate: widget.maxima,
+            onDateTimeChanged: (f) => _fecha = DateUtils.dateOnly(f),
           ),
-          TextButton(
-            onPressed: onVerificar,
-            child: const Text('Intentar de nuevo'),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        Boton(
+          'Elegir esta fecha',
+          onTap: () => Navigator.of(context).pop(_fecha),
+        ),
+      ],
     );
   }
 }

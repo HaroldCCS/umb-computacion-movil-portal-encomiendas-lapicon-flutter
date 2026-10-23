@@ -44,7 +44,7 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('ConfirmarTomaSheet muestra el recordatorio y devuelve true', (
+  testWidgets('confirmarToma muestra el recordatorio y devuelve true', (
     tester,
   ) async {
     bool? resultado;
@@ -56,12 +56,7 @@ void main() {
             body: Center(
               child: TextButton(
                 onPressed: () async {
-                  resultado = await showModalBottomSheet<bool>(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) =>
-                        const ConfirmarTomaSheet(encomienda: _encomienda),
-                  );
+                  resultado = await confirmarToma(context, _encomienda);
                 },
                 child: const Text('abrir'),
               ),

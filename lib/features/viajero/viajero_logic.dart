@@ -209,3 +209,39 @@ Map<String, num> gananciasPorMoneda(List<Encomienda> entregas) {
   }
   return total;
 }
+
+/// Orden de la lista de Explorar. No se ordena por valor: comparar USD con
+/// COP sería engañoso.
+enum OrdenExplorar {
+  recientes('Más recientes'),
+  vencenPronto('Vencen pronto');
+
+  const OrdenExplorar(this.titulo);
+
+  final String titulo;
+}
+
+/// Ordena sin modificar [lista]. Las que no tienen fecha van al final.
+List<Encomienda> ordenarDisponibles(List<Encomienda> lista, OrdenExplorar o) {
+  int porFecha(DateTime? a, DateTime? b, {required bool ascendente}) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return ascendente ? a.compareTo(b) : b.compareTo(a);
+  }
+
+  return [...lista]..sort(
+    (a, b) => switch (o) {
+      OrdenExplorar.recientes => porFecha(
+        a.creadaEn,
+        b.creadaEn,
+        ascendente: false,
+      ),
+      OrdenExplorar.vencenPronto => porFecha(
+        a.fechaVencimiento,
+        b.fechaVencimiento,
+        ascendente: true,
+      ),
+    },
+  );
+}

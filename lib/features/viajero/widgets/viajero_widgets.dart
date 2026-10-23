@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/tema.dart';
+import '../../../core/widgets/aviso.dart';
 import '../../../core/widgets/avatar.dart';
+import '../../../core/widgets/hoja.dart';
 import '../../../core/widgets/insignia.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/route_ticket.dart';
-import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/encomienda.dart';
-import '../../../data/models/rol.dart';
 import '../../../providers.dart';
 
 /// Tarjeta-pase de una encomienda vista por el viajero: el valor que le
@@ -34,7 +33,7 @@ class EncomiendaTicket extends StatelessWidget {
         origen: e.ciudadOrigen,
         destino: e.ciudadDestino,
         compact: true,
-        accent: Rol.viajero.accent(Theme.of(context).brightness),
+        accent: context.c.viajero,
         onTap: onTap,
         details: [
           TicketDetail(label: 'Te pagan', value: Fmt.dinero(e.valor, e.moneda)),
@@ -44,7 +43,7 @@ class EncomiendaTicket extends StatelessWidget {
               value: Fmt.fecha(e.fechaVencimiento, corta: true),
             ),
         ],
-        trailing: StatusChip.encomienda(e.estado),
+        trailing: Insignia.encomienda(e.estado),
       ),
     );
   }
@@ -95,7 +94,7 @@ class PersonaTrustRow extends ConsumerWidget {
       child: Row(
         children: [
           Avatar(mostrado),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,106 +129,22 @@ class PersonaTrustRow extends ConsumerWidget {
   }
 }
 
-/// Contenido de la hoja de confirmación para tomar una encomienda.
-/// Devuelve `true` con `Navigator.pop` si la persona confirma.
-class ConfirmarTomaSheet extends StatelessWidget {
-  const ConfirmarTomaSheet({super.key, required this.encomienda});
-
-  final Encomienda encomienda;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final e = encomienda;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          0,
-          AppSpacing.lg,
-          AppSpacing.lg,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('¿Tomar esta encomienda?', style: theme.textTheme.titleLarge),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Llevarás un paquete de ${e.ciudadOrigen} a ${e.ciudadDestino} '
-              'y te pagarán ${Fmt.dinero(e.valor, e.moneda)}.',
-              style: theme.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(AppRadius.field),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: theme.colorScheme.onSecondaryContainer,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'Revisa el contenido antes de aceptarlo. Eres '
-                      'responsable de lo que llevas en tu equipaje.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSecondaryContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
-              icon: const Icon(Icons.luggage),
-              label: const Text('Sí, tomarla'),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-          ],
-        ),
+/// Hoja para confirmar que se toma una encomienda. El recordatorio de
+/// responsabilidad se muestra completo, en una caja visible (docs/08 §8.5).
+/// Devuelve `true` solo si la persona confirma.
+Future<bool> confirmarToma(BuildContext context, Encomienda e) =>
+    confirmarConHoja(
+      context,
+      titulo: '¿Tomar esta encomienda?',
+      mensaje:
+          'Llevarás un paquete de ${e.ciudadOrigen} a ${e.ciudadDestino} y '
+          'te pagarán ${Fmt.dinero(e.valor, e.moneda)}.',
+      detalle: const Aviso(
+        'Revisa el contenido antes de aceptarlo. Eres responsable de lo que '
+        'llevas en tu equipaje.',
+        titulo: 'Antes de aceptar',
+        tipo: TipoAviso.atencion,
       ),
+      confirmarTexto: 'Sí, tomarla',
+      cancelarTexto: 'Cancelar',
     );
-  }
-}
-
-/// Encabezado de sección ("MIS ENTREGAS").
-class SeccionHeader extends StatelessWidget {
-  const SeccionHeader(this.texto, {super.key});
-
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xxs,
-        AppSpacing.lg,
-        AppSpacing.xxs,
-        AppSpacing.sm,
-      ),
-      child: Semantics(
-        header: true,
-        child: Text(
-          texto.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}

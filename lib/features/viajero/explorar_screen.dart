@@ -4,180 +4,160 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
-import '../../core/theme/app_tokens.dart';
 import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
-import '../../core/widgets/feedback_views.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../../core/widgets/chips.dart';
+import '../../core/widgets/esqueleto.dart';
+import '../../core/widgets/pantalla.dart';
 import '../../core/widgets/route_ticket.dart';
-import '../../data/models/rol.dart';
+import '../../data/models/encomienda.dart';
 import '../../data/models/viaje.dart';
+import 'mi_viaje_screen.dart';
+import 'viajero_logic.dart';
 import 'viajero_providers.dart';
 import 'viajero_routes.dart';
 import 'widgets/viajero_widgets.dart';
 
-/// Pestaña "Explorar": encomiendas disponibles en la ruta de mi viaje.
-class ExplorarScreen extends ConsumerWidget {
+/// Pestaña "Explorar": encomiendas disponibles en la ruta de mi viaje, con
+/// lo que pagan a la vista.
+class ExplorarScreen extends ConsumerStatefulWidget {
   const ExplorarScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final miViaje = ref.watch(miViajeProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Encomiendas para tu ruta'),
-        actions: [
-          IconButton(
-            tooltip: 'Asistente',
-            icon: const Icon(Icons.support_agent),
-            onPressed: () => context.push(Routes.asistente),
-          ),
-        ],
-      ),
-      body: miViaje.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(
-          message: e is AppException ? e.message : 'Intenta de nuevo.',
-          onRetry: () => ref.invalidate(miViajeProvider),
-        ),
-        data: (viaje) => viaje == null
-            ? EmptyState(
-                icon: Icons.luggage_outlined,
-                title: 'Primero registra tu viaje',
-                message:
-                    'Te mostraremos las encomiendas que van por tu misma '
-                    'ruta y lo que pagan por llevarlas.',
-                actionLabel: 'Registrar viaje',
-                onAction: () => context.push(ViajeroRoutes.registrarViaje),
-                color: Rol.viajero.accent(Theme.of(context).brightness),
-              )
-            : _Disponibles(viaje: viaje),
-      ),
-    );
-  }
+  ConsumerState<ExplorarScreen> createState() => _ExplorarScreenState();
 }
 
-class _Disponibles extends ConsumerWidget {
-  const _Disponibles({required this.viaje});
+class _ExplorarScreenState extends ConsumerState<ExplorarScreen> {
+  var _orden = OrdenExplorar.recientes;
 
-  final Viaje viaje;
+  Future<void> _refrescar() async {
+    ref.invalidate(miViajeProvider);
+    ref.invalidate(disponiblesEnMiRutaProvider);
+    try {
+      await ref.read(disponiblesEnMiRutaProvider.future);
+    } on Object {
+      // El error se muestra en la propia pantalla.
+    }
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context) {
+    final miViaje = ref.watch(miViajeProvider);
+    final viaje = miViaje.value;
     final disponibles = ref.watch(disponiblesEnMiRutaProvider);
+    final hayVarias = (disponibles.value?.length ?? 0) > 1;
 
-    final cabecera = <Widget>[
-      RouteTicket(
-        origen: viaje.ciudadOrigen,
-        destino: viaje.ciudadDestino,
-        compact: true,
-        accent: Rol.viajero.accent(theme.brightness),
-        details: [
-          TicketDetail(label: 'Tu vuelo', value: viaje.numeroVuelo),
-          TicketDetail(
-            label: 'Fecha',
-            value: Fmt.fecha(viaje.fechaViaje, corta: true),
+    return Pantalla(
+      titulo: 'Explorar',
+      subtitulo: viaje == null ? null : 'Encomiendas que van por tu ruta.',
+      conBarraPestanas: true,
+      alActualizar: _refrescar,
+      accion: BotonIcono(
+        icono: Icons.support_agent,
+        etiqueta: 'Asistente',
+        borde: false,
+        onTap: () => context.push(Routes.asistente),
+      ),
+      cabecera: viaje != null && hayVarias
+          ? Chips<OrdenExplorar>(
+              opciones: [
+                for (final o in OrdenExplorar.values) (o, o.titulo, null),
+              ],
+              valor: _orden,
+              onCambio: (o) => setState(() => _orden = o),
+            )
+          : null,
+      hijos: switch (miViaje) {
+        AsyncData(value: final v?) => _conViaje(v, disponibles),
+        AsyncData() => [
+          Vacio(
+            titulo: 'Primero registra tu viaje',
+            icono: Icons.luggage_outlined,
+            texto:
+                'Te mostraremos las encomiendas que van por tu misma ruta y lo '
+                'que pagan por llevarlas.',
+            accion: Boton(
+              'Registrar viaje',
+              icono: Icons.flight_takeoff,
+              onTap: () => context.push(ViajeroRoutes.registrarViaje),
+            ),
           ),
         ],
-      ),
-      const SizedBox(height: AppSpacing.sm),
-    ];
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(disponiblesEnMiRutaProvider);
-        try {
-          await ref.read(disponiblesEnMiRutaProvider.future);
-        } on Object {
-          // El error se muestra en la vista.
-        }
+        AsyncError(:final error) => [
+          ErrorCarga(
+            mensaje: error is AppException
+                ? error.message
+                : 'No pudimos cargar tu viaje.',
+            alReintentar: () => ref.invalidate(miViajeProvider),
+          ),
+        ],
+        _ => [const EsqueletoLista()],
       },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        // Relleno inferior para que la barra flotante no tape la lista.
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.md,
-          AppSpacing.md,
-          Medidas.bajoBarra(context),
-        ),
-        children: [
-          ...cabecera,
-          ...disponibles.when(
-            loading: () => const [
-              Padding(
-                padding: EdgeInsets.all(AppSpacing.xl),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ],
-            error: (e, _) => [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                child: Column(
-                  children: [
-                    Text(
-                      e is AppException
-                          ? e.message
-                          : 'No pudimos cargar las encomiendas.',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    FilledButton.tonal(
-                      onPressed: () =>
-                          ref.invalidate(disponiblesEnMiRutaProvider),
-                      child: const Text('Reintentar'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            data: (lista) => lista.isEmpty
-                ? [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.xl,
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.inbox_outlined,
-                            size: 48,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            'Aún no hay encomiendas para esta ruta.',
-                            style: theme.textTheme.titleMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                          Text(
-                            'Desliza hacia abajo para actualizar más tarde.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ]
-                : [
-                    SeccionHeader(
-                      '${lista.length} '
-                      '${lista.length == 1 ? 'encomienda disponible' : 'encomiendas disponibles'}',
-                    ),
-                    for (final e in lista) ...[
-                      EncomiendaTicket(
-                        encomienda: e,
-                        onTap: () =>
-                            context.push(ViajeroRoutes.encomienda, extra: e),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
-                  ],
-          ),
-        ],
-      ),
     );
+  }
+
+  List<Widget> _conViaje(Viaje viaje, AsyncValue<List<Encomienda>> lista) {
+    final c = context.c;
+    final ruta = RouteTicket(
+      origen: viaje.ciudadOrigen,
+      destino: viaje.ciudadDestino,
+      compact: true,
+      accent: c.viajero,
+      details: [
+        TicketDetail(
+          label: 'Tu vuelo',
+          value: viaje.numeroVuelo.isEmpty ? '—' : viaje.numeroVuelo,
+        ),
+        TicketDetail(
+          label: 'Fecha',
+          value: Fmt.fecha(viaje.fechaViaje, corta: true),
+        ),
+      ],
+    );
+    return switch (lista) {
+      AsyncData(:final value) when value.isEmpty => [
+        ruta,
+        const Vacio(
+          titulo: 'Aún no hay encomiendas para esta ruta',
+          icono: Icons.inbox_outlined,
+          texto: 'Desliza hacia abajo para actualizar más tarde.',
+        ),
+      ],
+      AsyncData(:final value) => [
+        ruta,
+        Semantics(
+          header: true,
+          child: Text(
+            '${value.length} '
+            '${value.length == 1 ? 'encomienda disponible' : 'encomiendas disponibles'}',
+            style: context.t.titleLarge,
+          ),
+        ),
+        for (final e in ordenarDisponibles(value, _orden))
+          EncomiendaTicket(
+            encomienda: e,
+            onTap: () => abrirEncomiendaViajero(context, e),
+          ),
+      ],
+      AsyncError(:final error) => [
+        ruta,
+        Aviso(
+          error is AppException
+              ? error.message
+              : 'No pudimos cargar las encomiendas.',
+          tipo: TipoAviso.error,
+          accion: Boton(
+            'Reintentar',
+            chico: true,
+            ancho: false,
+            variante: VarianteBoton.secundario,
+            onTap: () => ref.invalidate(disponiblesEnMiRutaProvider),
+          ),
+        ),
+      ],
+      _ => [ruta, const EsqueletoLista(cantidad: 2)],
+    };
   }
 }

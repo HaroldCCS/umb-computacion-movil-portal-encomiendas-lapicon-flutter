@@ -4,13 +4,18 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/accion_resaltada.dart';
-import '../../core/widgets/feedback_views.dart';
-import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../../core/widgets/grupo.dart';
+import '../../core/widgets/hoja.dart';
+import '../../core/widgets/insignia.dart';
+import '../../core/widgets/monto.dart';
+import '../../core/widgets/pantalla.dart';
 import '../../core/widgets/route_ticket.dart';
-import '../../core/widgets/status_chip.dart';
+import '../../core/widgets/toast.dart';
 import '../../data/models/encomienda.dart';
 import '../../data/models/estado.dart';
 import '../../data/models/rol.dart';
@@ -44,6 +49,7 @@ class _EncomiendaViajeroScreenState
   late Encomienda _e = widget.encomienda;
   bool _loading = false;
   bool _calificada = false;
+  String? _error;
 
   String? get _uid => ref.read(sessionProvider).user?.uid;
 
@@ -64,13 +70,7 @@ class _EncomiendaViajeroScreenState
   }
 
   Future<void> _tomar() async {
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      isScrollControlled: true,
-      builder: (context) => ConfirmarTomaSheet(encomienda: _e),
-    );
+    final ok = await confirmarToma(context, _e);
     if (ok != true || !mounted) return;
     await _accion(() async {
       final respuesta = await ref
@@ -89,13 +89,17 @@ class _EncomiendaViajeroScreenState
     });
   }
 
+  /// Irreversible (cierra el chat): se confirma escribiendo ENTREGAR.
   Future<void> _marcarEntregada() async {
-    final ok = await confirmar(
+    final ok = await confirmarConHoja(
       context,
-      titulo: '¿Marcar como entregada?',
+      titulo: '¿Ya la entregaste?',
       mensaje:
-          'Hazlo solo cuando el paquete ya esté en manos del destinatario.',
-      confirmarLabel: 'Sí, ya la entregué',
+          'Hazlo solo cuando el paquete ya esté en manos del destinatario. '
+          'La entrega queda registrada, el chat se cierra y podrán '
+          'calificarse.',
+      confirmarTexto: 'Sí, ya la entregué',
+      palabra: 'ENTREGAR',
     );
     if (!ok || !mounted) return;
     await _accion(() async {
@@ -128,7 +132,6 @@ class _EncomiendaViajeroScreenState
     );
     if (ok == true && mounted) {
       setState(() => _calificada = true);
-      showAppSnackBar(context, '¡Gracias por calificar!');
     }
   }
 
@@ -147,13 +150,17 @@ class _EncomiendaViajeroScreenState
 
   /// Ejecuta una acción con carga, errores amables y refresco de listas.
   Future<void> _accion(Future<String> Function() accion) async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final mensaje = await accion();
       refrescarViajero(ref);
-      if (mounted) showAppSnackBar(context, mensaje);
+      if (mounted) mostrarToast(context, mensaje);
     } on AppException catch (e) {
-      if (mounted) showAppSnackBar(context, e.message, error: true);
+      // El error va junto a la acción, no en un aviso genérico.
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -161,7 +168,7 @@ class _EncomiendaViajeroScreenState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = context.c;
     final uid = ref.watch(sessionProvider).user?.uid;
     final mia = tomadaPorMi(_e, uid, _idsLocales());
     final sinRemitente = _e.remitenteUid == null;
@@ -173,92 +180,93 @@ class _EncomiendaViajeroScreenState
       null => false,
     };
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Encomienda')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          // No perezoso: así un aviso puede llevar hasta la acción.
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RouteTicket(
-                origen: _e.ciudadOrigen,
-                destino: _e.ciudadDestino,
-                accent: Rol.viajero.accent(theme.brightness),
-                details: [
-                  if (_e.fechaVencimiento != null)
-                    TicketDetail(
-                      label: 'Vence',
-                      value: Fmt.fecha(_e.fechaVencimiento),
-                    ),
-                ],
-                trailing: StatusChip.encomienda(_e.estado),
+    return Pantalla(
+      titulo: 'Encomienda',
+      pie: AccionResaltada(
+        activa: resaltar,
+        aviso: widget.accion == AccionPendiente.entregar
+            ? 'Cuando la dejes en destino, márcala como entregada: así el '
+                  'remitente sabe que llegó.'
+            : 'Califica a ${_e.remitenteNombre ?? 'quien te la confió'}: tu '
+                  'opinión ayuda a otros viajeros.',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_error != null) ...[
+              Aviso(_error!, tipo: TipoAviso.error),
+              const SizedBox(height: 12),
+            ],
+            ..._acciones(
+              mia: mia,
+              sinRemitente: sinRemitente,
+              calificada: calificada,
+            ),
+          ],
+        ),
+      ),
+      hijos: [
+        RouteTicket(
+          origen: _e.ciudadOrigen,
+          destino: _e.ciudadDestino,
+          accent: c.viajero,
+          details: [
+            if (_e.fechaVencimiento != null)
+              TicketDetail(
+                label: 'Vence',
+                value: Fmt.fecha(_e.fechaVencimiento),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Semantics(
-                label: 'Te pagan ${Fmt.dinero(_e.valor, _e.moneda)}',
-                excludeSemantics: true,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TE PAGAN',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      Fmt.dinero(_e.valor, _e.moneda),
-                      style: theme.textTheme.displaySmall,
-                    ),
-                  ],
-                ),
+          ],
+          trailing: Insignia.encomienda(_e.estado),
+        ),
+        Grupo(
+          titulo: 'Lo que te pagan',
+          hijos: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Monto(
+                _e.valor,
+                moneda: _e.moneda,
+                estilo: context.t.displaySmall?.copyWith(color: c.texto),
               ),
-              const SeccionHeader('Qué llevas'),
-              Text(
+            ),
+          ],
+        ),
+        Grupo(
+          titulo: 'Qué llevas',
+          hijos: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
                 _e.observaciones.isEmpty
                     ? 'El remitente no agregó detalles.'
                     : _e.observaciones,
-                style: theme.textTheme.bodyLarge,
+                style: TextStyle(fontSize: 17, height: 1.4, color: c.texto),
               ),
-              const SeccionHeader('Remitente'),
-              if (sinRemitente)
-                // El backend solo da el nombre (no el uid) en /disponibles.
-                Text(
-                  '${_e.remitenteNombre == null ? 'El remitente' : 'La publicó ${_e.remitenteNombre}'}. '
-                  'Podrás escribirle cuando te escriba primero por el chat.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                )
-              else
-                PersonaTrustRow(
-                  uid: _e.remitenteUid!,
-                  nombre: _e.remitenteNombre,
-                  rolLabel: 'Remitente',
-                ),
-              const SizedBox(height: AppSpacing.xl),
-              AccionResaltada(
-                activa: resaltar,
-                aviso: widget.accion == AccionPendiente.entregar
-                    ? 'Cuando la dejes en destino, márcala como entregada: así '
-                          'el remitente sabe que llegó.'
-                    : 'Califica a ${_e.remitenteNombre ?? 'quien te la '
-                              'confió'}: tu opinión ayuda a otros viajeros.',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: _acciones(
-                    mia: mia,
-                    sinRemitente: sinRemitente,
-                    calificada: calificada,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
+        Grupo(
+          titulo: 'Remitente',
+          hijos: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: sinRemitente
+                  // El backend solo da el nombre (no el uid) en /disponibles.
+                  ? Text(
+                      '${_e.remitenteNombre == null ? 'El remitente' : 'La publicó ${_e.remitenteNombre}'}. '
+                      'Podrás escribirle cuando te escriba primero por el chat.',
+                      style: TextStyle(fontSize: 15, color: c.texto2),
+                    )
+                  : PersonaTrustRow(
+                      uid: _e.remitenteUid!,
+                      nombre: _e.remitenteNombre,
+                      rolLabel: 'Remitente',
+                    ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -267,41 +275,37 @@ class _EncomiendaViajeroScreenState
     required bool sinRemitente,
     required bool calificada,
   }) {
-    final theme = Theme.of(context);
-    Widget info(String texto) => Text(
-      texto,
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-      textAlign: TextAlign.center,
-    );
+    Widget info(String texto) => Aviso(texto);
 
     switch (_e.estado) {
       case EstadoEncomienda.disponible:
       case EstadoEncomienda.desconocido:
         if (mia) return [info('Ya tomaste esta encomienda.')];
         return [
-          PrimaryButton(
-            label: 'Tomar encomienda',
-            icon: Icons.luggage,
-            loading: _loading,
-            onPressed: _tomar,
+          Boton(
+            'Tomar encomienda',
+            icono: Icons.luggage,
+            textoCargando: 'Tomando…',
+            cargando: _loading,
+            onTap: _tomar,
           ),
         ];
       case EstadoEncomienda.tomada:
         if (!mia) return [info('Otra persona ya tomó esta encomienda.')];
         return [
-          PrimaryButton(
-            label: 'Marcar como entregada',
-            icon: Icons.check_circle_outline,
-            loading: _loading,
-            onPressed: _marcarEntregada,
+          Boton(
+            'Marcar como entregada',
+            icono: Icons.check_circle_outline,
+            textoCargando: 'Guardando…',
+            cargando: _loading,
+            onTap: _marcarEntregada,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: sinRemitente || _loading ? null : _abrirChat,
-            icon: const Icon(Icons.chat_bubble_outline),
-            label: const Text('Abrir chat con el remitente'),
+          const SizedBox(height: 8),
+          Boton(
+            'Abrir chat con el remitente',
+            icono: Icons.chat_bubble_outline,
+            variante: VarianteBoton.secundario,
+            onTap: sinRemitente || _loading ? null : _abrirChat,
           ),
         ];
       case EstadoEncomienda.entregada || EstadoEncomienda.recibida:
@@ -310,16 +314,17 @@ class _EncomiendaViajeroScreenState
           if (calificada)
             info('¡Gracias por calificar! Tu opinión ayuda a otros viajeros.')
           else
-            PrimaryButton(
-              label: 'Calificar al remitente',
-              icon: Icons.star_outline,
-              onPressed: sinRemitente ? null : _calificar,
+            Boton(
+              'Calificar al remitente',
+              icono: Icons.star_outline_rounded,
+              onTap: sinRemitente ? null : _calificar,
             ),
-          const SizedBox(height: AppSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: sinRemitente ? null : _abrirChat,
-            icon: const Icon(Icons.chat_bubble_outline),
-            label: const Text('Ver chat'),
+          const SizedBox(height: 8),
+          Boton(
+            'Ver chat',
+            icono: Icons.chat_bubble_outline,
+            variante: VarianteBoton.secundario,
+            onTap: sinRemitente ? null : _abrirChat,
           ),
         ];
       case EstadoEncomienda.vencida:
