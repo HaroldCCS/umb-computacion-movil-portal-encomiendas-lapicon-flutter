@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/validators.dart';
-import '../../core/widgets/app_text_field.dart';
-import '../../core/widgets/brand.dart';
-import '../../core/widgets/feedback_views.dart';
-import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../../core/widgets/campo.dart';
+import '../../core/widgets/pantalla.dart';
 import '../../data/services/auth_service.dart';
 import '../../providers.dart';
 
+/// Recuperar contraseña. Por privacidad nunca dice si el correo existe.
 class RecuperarScreen extends ConsumerStatefulWidget {
   const RecuperarScreen({super.key});
 
@@ -23,6 +24,7 @@ class _RecuperarScreenState extends ConsumerState<RecuperarScreen> {
   final _email = TextEditingController();
   bool _loading = false;
   bool _enviado = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -32,21 +34,24 @@ class _RecuperarScreenState extends ConsumerState<RecuperarScreen> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
+    setState(() => _error = null);
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
     try {
       await ref.read(authServiceProvider).recuperarPassword(_email.text);
       if (mounted) setState(() => _enviado = true);
     } on AuthException catch (e) {
-      // Por privacidad no revelamos si el correo existe.
       if (!mounted) return;
-      if (e.code == 'user-not-found') {
-        setState(() => _enviado = true);
-      } else {
-        showAppSnackBar(context, e.message, error: true);
-      }
+      // "No existe" se muestra igual que el éxito.
+      setState(() {
+        if (e.code == 'user-not-found') {
+          _enviado = true;
+        } else {
+          _error = e.message;
+        }
+      });
     } on AppException catch (e) {
-      if (mounted) showAppSnackBar(context, e.message, error: true);
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -54,49 +59,62 @@ class _RecuperarScreenState extends ConsumerState<RecuperarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Recuperar contraseña')),
-      body: _enviado
-          ? EmptyState(
-              icon: Icons.mark_email_read_outlined,
-              title: 'Revisa tu correo',
-              message:
-                  'Si ${_email.text.trim()} está registrado, te enviamos un '
-                  'enlace para crear una nueva contraseña.',
-              actionLabel: 'Volver a iniciar sesión',
-              onAction: () => Navigator.of(context).maybePop(),
-              color: AppColors.estadoEntregada,
-            )
-          : Form(
-              key: _formKey,
-              child: FormPage(
-                children: [
-                  Text(
-                    'Te enviaremos un enlace para crear una contraseña nueva.',
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppTextField(
-                    label: 'Correo',
-                    controller: _email,
-                    hint: 'tu@correo.com',
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.email],
-                    validator: Validators.email,
-                    prefixIcon: Icons.mail_outline,
-                    onSubmitted: (_) => _submit(),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  PrimaryButton(
-                    label: 'Enviar enlace',
-                    loading: _loading,
-                    onPressed: _submit,
-                  ),
-                ],
-              ),
+    final c = context.c;
+    if (_enviado) {
+      return Pantalla(
+        titulo: 'Revisa tu correo',
+        hijos: [
+          Vacio(
+            titulo: 'Enlace enviado',
+            icono: Icons.mark_email_read_outlined,
+            colorIcono: c.exito,
+            fondoIcono: c.exitoSuave,
+            texto:
+                'Si ${_email.text.trim()} está registrado, te enviamos un '
+                'enlace para crear una nueva contraseña.',
+            accion: Boton(
+              'Volver a iniciar sesión',
+              onTap: () => Navigator.of(context).maybePop(),
             ),
+          ),
+        ],
+      );
+    }
+    return Form(
+      key: _formKey,
+      child: Pantalla(
+        titulo: 'Recuperar contraseña',
+        subtitulo: 'Te enviaremos un enlace para crear una contraseña nueva.',
+        hijos: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Campo(
+                etiqueta: 'Correo',
+                controlador: _email,
+                pista: 'tu@correo.com',
+                teclado: TextInputType.emailAddress,
+                accionTeclado: TextInputAction.done,
+                autofill: const [AutofillHints.email],
+                validador: Validators.email,
+                icono: Icons.mail_outline,
+                alEnviar: (_) => _submit(),
+              ),
+              const SizedBox(height: 24),
+              if (_error != null) ...[
+                Aviso(_error!, tipo: TipoAviso.error),
+                const SizedBox(height: 12),
+              ],
+              Boton(
+                'Enviar enlace',
+                textoCargando: 'Enviando…',
+                cargando: _loading,
+                onTap: _submit,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

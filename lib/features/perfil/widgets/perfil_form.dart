@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/app_tokens.dart';
+import '../../../core/network/app_exception.dart';
 import '../../../core/utils/validators.dart';
-import '../../../core/widgets/app_text_field.dart';
-import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/aviso.dart';
+import '../../../core/widgets/boton.dart';
+import '../../../core/widgets/campo.dart';
 import '../../../data/models/usuario.dart';
 import 'pais_picker.dart';
 
@@ -24,7 +25,8 @@ class PerfilForm extends StatefulWidget {
   final Usuario? inicial;
   final String? email;
 
-  /// Debe lanzar una excepción si falla; el formulario maneja la carga.
+  /// Debe lanzar [AppException] si falla: el formulario muestra el error
+  /// junto al botón y maneja la carga.
   final Future<void> Function(Usuario datos) onSubmit;
 
   @override
@@ -42,6 +44,7 @@ class _PerfilFormState extends State<PerfilForm> {
         : 'Colombia',
   );
   bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -59,6 +62,7 @@ class _PerfilFormState extends State<PerfilForm> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
+    setState(() => _error = null);
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
     try {
@@ -73,6 +77,8 @@ class _PerfilFormState extends State<PerfilForm> {
           rol: widget.inicial?.rol,
         ),
       );
+    } on AppException catch (e) {
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -86,54 +92,59 @@ class _PerfilFormState extends State<PerfilForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AppTextField(
-              label: 'Nombre',
-              controller: _nombre,
-              hint: 'Laura',
-              textCapitalization: TextCapitalization.words,
-              autofillHints: const [AutofillHints.givenName],
-              validator: (v) => Validators.nombre(v, 'El nombre'),
+            Campo(
+              etiqueta: 'Nombre',
+              controlador: _nombre,
+              pista: 'Laura',
+              capitalizacion: TextCapitalization.words,
+              autofill: const [AutofillHints.givenName],
+              validador: (v) => Validators.nombre(v, 'El nombre'),
             ),
-            const SizedBox(height: AppSpacing.md),
-            AppTextField(
-              label: 'Apellido',
-              controller: _apellido,
-              hint: 'Gómez',
-              textCapitalization: TextCapitalization.words,
-              autofillHints: const [AutofillHints.familyName],
-              validator: (v) => Validators.nombre(v, 'El apellido'),
+            const SizedBox(height: 16),
+            Campo(
+              etiqueta: 'Apellido',
+              controlador: _apellido,
+              pista: 'Gómez',
+              capitalizacion: TextCapitalization.words,
+              autofill: const [AutofillHints.familyName],
+              validador: (v) => Validators.nombre(v, 'El apellido'),
             ),
-            const SizedBox(height: AppSpacing.md),
-            AppTextField(
-              label: 'Teléfono',
-              controller: _telefono,
-              hint: '300 000 0000',
-              helper: 'Lo verá la persona con la que coordines una entrega.',
-              keyboardType: TextInputType.phone,
-              autofillHints: const [AutofillHints.telephoneNumber],
-              inputFormatters: [
+            const SizedBox(height: 16),
+            Campo(
+              etiqueta: 'Teléfono',
+              controlador: _telefono,
+              pista: '300 000 0000',
+              ayuda: 'Lo verá la persona con la que coordines una entrega.',
+              teclado: TextInputType.phone,
+              autofill: const [AutofillHints.telephoneNumber],
+              formateadores: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d\s+()-]')),
               ],
-              validator: Validators.telefono,
-              prefixIcon: Icons.phone_outlined,
+              validador: Validators.telefono,
+              icono: Icons.phone_outlined,
             ),
-            const SizedBox(height: AppSpacing.md),
-            AppTextField(
-              label: 'Nacionalidad',
-              controller: _nacionalidad,
-              readOnly: true,
-              onTap: _elegirPais,
-              textInputAction: TextInputAction.done,
-              validator: (v) => Validators.requerido(v, 'La nacionalidad'),
-              prefixIcon: Icons.public,
-              showValidCheck: false,
-              suffix: const Icon(Icons.expand_more),
+            const SizedBox(height: 16),
+            Campo(
+              etiqueta: 'Nacionalidad',
+              controlador: _nacionalidad,
+              soloLectura: true,
+              alTocar: _elegirPais,
+              accionTeclado: TextInputAction.done,
+              validador: (v) => Validators.requerido(v, 'La nacionalidad'),
+              icono: Icons.public,
+              checkValido: false,
+              sufijo: const Icon(Icons.expand_more),
             ),
-            const SizedBox(height: AppSpacing.xl),
-            PrimaryButton(
-              label: widget.submitLabel,
-              loading: _loading,
-              onPressed: _submit,
+            const SizedBox(height: 24),
+            if (_error != null) ...[
+              Aviso(_error!, tipo: TipoAviso.error),
+              const SizedBox(height: 12),
+            ],
+            Boton(
+              widget.submitLabel,
+              textoCargando: 'Guardando…',
+              cargando: _loading,
+              onTap: _submit,
             ),
           ],
         ),

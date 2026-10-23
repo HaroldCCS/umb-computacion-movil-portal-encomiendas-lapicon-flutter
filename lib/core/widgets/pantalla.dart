@@ -66,12 +66,9 @@ class Pantalla extends StatelessWidget {
             previousPageTitle: textoAtras,
             trailing: accion,
             backgroundColor: c.fondo.withValues(alpha: .78),
-            border: Border(
-              bottom: BorderSide(
-                color: c.separador.withValues(alpha: .7),
-                width: .5,
-              ),
-            ),
+            // Sin línea: con el título grande quedaba entre el título y el
+            // subtítulo; al compactarse, el vidrio ya separa.
+            border: null,
             // Con jalar para actualizar, el estiramiento se lo come el gesto.
             stretch: alActualizar == null,
           ),
@@ -81,7 +78,7 @@ class Pantalla extends StatelessWidget {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 Medidas.margen,
-                0,
+                4,
                 Medidas.margen,
                 4,
               ),

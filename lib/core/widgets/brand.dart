@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_tokens.dart';
+import '../theme/tema.dart';
 
-/// Logotipo: avión en círculo ámbar + "LAPTICON".
+/// Logotipo: avión sobre el degradado Medianoche + "Lapticon" en
+/// Space Grotesk.
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.size = 40});
 
@@ -10,7 +12,7 @@ class BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = context.c;
     return Semantics(
       label: 'Lapticon',
       excludeSemantics: true,
@@ -21,22 +23,22 @@ class BrandMark extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: theme.colorScheme.secondary,
-              shape: BoxShape.circle,
+              gradient: Degradados.remitente,
+              borderRadius: BorderRadius.circular(size * 0.3),
             ),
             child: Icon(
-              Icons.flight_takeoff,
+              Icons.flight_takeoff_rounded,
               size: size * 0.55,
-              color: theme.colorScheme.onSecondary,
+              color: c.remitente,
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: 12),
           Text(
-            'LAPTICON',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
-              color: theme.colorScheme.primary,
+            'Lapticon',
+            style: context.t.displaySmall?.copyWith(
+              fontSize: size * 0.6,
+              letterSpacing: -0.3,
+              color: c.texto,
             ),
           ),
         ],
@@ -87,7 +89,7 @@ class StepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = context.c;
     return Semantics(
       label: 'Paso $step de $total',
       excludeSemantics: true,
@@ -96,26 +98,27 @@ class StepIndicator extends StatelessWidget {
         children: [
           Text(
             'PASO $step DE $total',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+              color: c.texto2,
             ),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: 8),
           Row(
             children: [
               for (var i = 1; i <= total; i++) ...[
                 Expanded(
                   child: Container(
-                    height: 4,
+                    height: 6,
                     decoration: BoxDecoration(
-                      color: i <= step
-                          ? theme.colorScheme.secondary
-                          : theme.colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
+                      color: i <= step ? c.marca : c.superficie2,
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                 ),
-                if (i < total) const SizedBox(width: AppSpacing.xs),
+                if (i < total) const SizedBox(width: 8),
               ],
             ],
           ),

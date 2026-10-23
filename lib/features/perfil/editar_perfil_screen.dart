@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/network/app_exception.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/feedback_views.dart';
 import '../../providers.dart';
@@ -27,17 +26,12 @@ class EditarPerfilScreen extends ConsumerWidget {
                   email: session.email,
                   inicial: perfil,
                   submitLabel: 'Guardar cambios',
+                  // Si falla, PerfilForm muestra el error junto al botón.
                   onSubmit: (datos) async {
-                    try {
-                      await session.actualizarPerfil(datos);
-                      if (!context.mounted) return;
-                      showAppSnackBar(context, 'Perfil actualizado');
-                      Navigator.of(context).maybePop();
-                    } on AppException catch (e) {
-                      if (context.mounted) {
-                        showAppSnackBar(context, e.message, error: true);
-                      }
-                    }
+                    await session.actualizarPerfil(datos);
+                    if (!context.mounted) return;
+                    showAppSnackBar(context, 'Perfil actualizado');
+                    Navigator.of(context).maybePop();
                   },
                 ),
               ],

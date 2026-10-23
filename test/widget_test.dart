@@ -89,7 +89,7 @@ void main() {
   });
 
   for (final dark in [false, true]) {
-    testWidgets('RoleCard cumple contraste y área táctil '
+    testWidgets('TarjetaRol cumple contraste y área táctil '
         '(${dark ? 'oscuro' : 'claro'})', (tester) async {
       final handle = tester.ensureSemantics();
       await tester.pumpWidget(
@@ -97,7 +97,11 @@ void main() {
           Column(
             children: [
               for (final rol in Rol.values)
-                RoleCard(rol: rol, selected: rol == Rol.viajero, onTap: () {}),
+                TarjetaRol(
+                  rol: rol,
+                  seleccionada: rol == Rol.viajero,
+                  onTap: () {},
+                ),
             ],
           ),
           theme: dark

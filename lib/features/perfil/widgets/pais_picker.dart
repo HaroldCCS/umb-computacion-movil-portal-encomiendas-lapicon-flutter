@@ -2,28 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/app_exception.dart';
-import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/tema.dart';
+import '../../../core/widgets/aviso.dart';
+import '../../../core/widgets/boton.dart';
+import '../../../core/widgets/campo.dart';
+import '../../../core/widgets/esqueleto.dart';
+import '../../../core/widgets/hoja.dart';
+import '../../../core/widgets/presionable.dart';
 import '../../../providers.dart';
 
 /// Abre un buscador de países (`/api/ciudades/paises`) en una hoja inferior.
 /// Devuelve el país elegido o `null` si se cierra.
-Future<String?> showPaisPicker(BuildContext context, {String? actual}) {
-  return showModalBottomSheet<String>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppRadius.sheet),
-      ),
-    ),
-    builder: (context) => FractionallySizedBox(
-      heightFactor: 0.9,
-      child: _PaisPicker(actual: actual),
-    ),
-  );
-}
+Future<String?> showPaisPicker(BuildContext context, {String? actual}) =>
+    mostrarHoja<String>(
+      context,
+      titulo: 'Nacionalidad',
+      altoCompleto: true,
+      contenido: _PaisPicker(actual: actual),
+    );
 
 class _PaisPicker extends ConsumerStatefulWidget {
   const _PaisPicker({this.actual});
@@ -55,139 +51,160 @@ class _PaisPickerState extends ConsumerState<_PaisPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final paises = ref.watch(paisesProvider);
     final q = _query.text.trim().toLowerCase();
+    final texto = _query.text.trim();
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text('Nacionalidad', style: theme.textTheme.titleLarge),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Semantics(
+            label: 'Buscar país',
             child: TextField(
               controller: _query,
               autofocus: true,
               textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Buscar país (en inglés, p. ej. "Colombia", "Spain")',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerLowest,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.field),
-                ),
+              style: TextStyle(fontSize: 17, color: context.c.texto),
+              decoration: decoracionCampo(
+                context,
+                pista: 'Buscar país (en inglés)',
+                prefijo: Icon(Icons.search, color: context.c.texto2),
               ),
               onChanged: (_) => setState(() {}),
             ),
           ),
-          Expanded(
-            child: paises.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => _ErrorConTexto(
-                mensaje: e is AppException
-                    ? e.message
+        ),
+        Expanded(
+          child: switch (paises) {
+            AsyncData(value: final lista) => _lista(lista, q, texto),
+            AsyncError(:final error) => _relleno(
+              Aviso(
+                error is AppException
+                    ? error.message
                     : 'No pudimos cargar la lista de países.',
-                texto: _query.text.trim(),
-                onRetry: () => ref.invalidate(paisesProvider),
+                tipo: TipoAviso.error,
+                accion: Wrap(
+                  spacing: 8,
+                  children: [
+                    Boton(
+                      'Reintentar',
+                      chico: true,
+                      ancho: false,
+                      variante: VarianteBoton.secundario,
+                      onTap: () => ref.invalidate(paisesProvider),
+                    ),
+                    if (texto.isNotEmpty)
+                      Boton(
+                        'Usar "$texto"',
+                        chico: true,
+                        ancho: false,
+                        variante: VarianteBoton.tonal,
+                        onTap: () => Navigator.of(context).pop(texto),
+                      ),
+                  ],
+                ),
               ),
-              data: (lista) {
-                final filtrados = q.isEmpty
-                    ? [
-                        ..._sugeridos.where(lista.contains),
-                        ...lista.where((p) => !_sugeridos.contains(p)),
-                      ]
-                    : lista.where((p) => p.toLowerCase().contains(q)).toList();
-                if (filtrados.isEmpty) {
-                  return _UsarTexto(texto: _query.text.trim());
-                }
-                return ListView.builder(
-                  itemCount: filtrados.length,
-                  itemBuilder: (context, i) {
-                    final pais = filtrados[i];
-                    final seleccionado = pais == widget.actual;
-                    return ListTile(
-                      title: Text(pais),
-                      trailing: seleccionado
-                          ? Icon(Icons.check, color: theme.colorScheme.primary)
-                          : null,
-                      selected: seleccionado,
-                      onTap: () => Navigator.of(context).pop(pais),
-                    );
-                  },
-                );
-              },
             ),
-          ),
-        ],
+            _ => _relleno(const EsqueletoLista(cantidad: 6, alto: 44)),
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _relleno(Widget hijo) => SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+    child: hijo,
+  );
+
+  Widget _lista(List<String> lista, String q, String texto) {
+    final filtrados = q.isEmpty
+        ? [
+            ..._sugeridos.where(lista.contains),
+            ...lista.where((p) => !_sugeridos.contains(p)),
+          ]
+        : lista.where((p) => p.toLowerCase().contains(q)).toList();
+    if (filtrados.isEmpty) {
+      return _relleno(
+        Aviso(
+          'No encontramos "$texto" en la lista.',
+          accion: texto.isEmpty
+              ? null
+              : Boton(
+                  'Usar "$texto"',
+                  chico: true,
+                  ancho: false,
+                  variante: VarianteBoton.tonal,
+                  onTap: () => Navigator.of(context).pop(texto),
+                ),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: EdgeInsets.only(
+        bottom: 20 + MediaQuery.paddingOf(context).bottom,
       ),
+      itemCount: filtrados.length,
+      itemBuilder: (context, i) {
+        final pais = filtrados[i];
+        return _FilaPais(
+          pais: pais,
+          seleccionado: pais == widget.actual,
+          onTap: () => Navigator.of(context).pop(pais),
+        );
+      },
     );
   }
 }
 
-class _UsarTexto extends StatelessWidget {
-  const _UsarTexto({required this.texto});
-
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        children: [
-          Text(
-            'No encontramos "$texto" en la lista.',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (texto.isNotEmpty)
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(texto),
-              child: Text('Usar "$texto"'),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorConTexto extends StatelessWidget {
-  const _ErrorConTexto({
-    required this.mensaje,
-    required this.texto,
-    required this.onRetry,
+class _FilaPais extends StatelessWidget {
+  const _FilaPais({
+    required this.pais,
+    required this.seleccionado,
+    required this.onTap,
   });
 
-  final String mensaje;
-  final String texto;
-  final VoidCallback onRetry;
+  final String pais;
+  final bool seleccionado;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        children: [
-          Text(mensaje, textAlign: TextAlign.center),
-          const SizedBox(height: AppSpacing.sm),
-          FilledButton.tonal(
-            onPressed: onRetry,
-            child: const Text('Reintentar'),
+    final c = context.c;
+    return Semantics(
+      button: true,
+      selected: seleccionado,
+      label: pais,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Presionable(
+        onTap: onTap,
+        escala: 0.99,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: Medidas.alturaFila),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: c.separador)),
           ),
-          if (texto.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xs),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(texto),
-              child: Text('Usar "$texto"'),
-            ),
-          ],
-        ],
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  pais,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: seleccionado ? FontWeight.w600 : null,
+                    color: seleccionado ? c.marca : c.texto,
+                  ),
+                ),
+              ),
+              if (seleccionado) Icon(Icons.check_rounded, color: c.marca),
+            ],
+          ),
+        ),
       ),
     );
   }

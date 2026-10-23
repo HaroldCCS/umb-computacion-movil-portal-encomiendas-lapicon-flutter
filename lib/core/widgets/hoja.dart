@@ -6,12 +6,14 @@ import 'confirmacion_escrita.dart';
 import 'presionable.dart';
 
 /// Hoja inferior del sistema: manija, título, botón cerrar; se cierra
-/// arrastrando y sube con el teclado. Para formularios cortos y acciones con
+/// arrastrando y sube con el teclado. Con [altoCompleto] ocupa casi toda la
+/// pantalla y [contenido] maneja su propio scroll. Para formularios cortos y acciones con
 /// consecuencias (docs/08 §8.6-5).
 Future<T?> mostrarHoja<T>(
   BuildContext context, {
   required String titulo,
   required Widget contenido,
+  bool altoCompleto = false,
 }) {
   final animar = !MediaQuery.disableAnimationsOf(context);
   return showModalBottomSheet<T>(
@@ -27,15 +29,24 @@ Future<T?> mostrarHoja<T>(
             curve: Movimiento.hoja,
           )
         : AnimationStyle.noAnimation,
-    builder: (context) => _Hoja(titulo: titulo, contenido: contenido),
+    builder: (context) =>
+        _Hoja(titulo: titulo, contenido: contenido, altoCompleto: altoCompleto),
   );
 }
 
 class _Hoja extends StatelessWidget {
-  const _Hoja({required this.titulo, required this.contenido});
+  const _Hoja({
+    required this.titulo,
+    required this.contenido,
+    required this.altoCompleto,
+  });
 
   final String titulo;
   final Widget contenido;
+
+  /// Ocupa el alto máximo y el contenido maneja su propio scroll (listas
+  /// largas como el buscador de países).
+  final bool altoCompleto;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +60,7 @@ class _Hoja extends StatelessWidget {
           maxWidth: 560,
         ),
         child: Container(
+          height: altoCompleto ? MediaQuery.sizeOf(context).height * .92 : null,
           decoration: BoxDecoration(
             color: c.superficie,
             borderRadius: const BorderRadius.vertical(
@@ -91,17 +103,20 @@ class _Hoja extends StatelessWidget {
                   ],
                 ),
               ),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    8,
-                    20,
-                    20 + MediaQuery.paddingOf(context).bottom,
+              if (altoCompleto)
+                Expanded(child: contenido)
+              else
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      8,
+                      20,
+                      20 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    child: contenido,
                   ),
-                  child: contenido,
                 ),
-              ),
             ],
           ),
         ),
