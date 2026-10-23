@@ -167,3 +167,44 @@ class BotonIcono extends StatelessWidget {
     );
   }
 }
+
+/// Acción de texto (enlace): "¿Olvidaste tu contraseña?", "Crear cuenta".
+/// Área táctil de 48 dp y la misma respuesta de escala que los botones.
+class Enlace extends StatelessWidget {
+  const Enlace(this.texto, {super.key, required this.onTap});
+
+  final String texto;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: texto,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Presionable(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                texto,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: c.marca,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

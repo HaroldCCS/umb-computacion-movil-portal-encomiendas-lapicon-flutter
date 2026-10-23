@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lapticon_app/core/theme/app_theme.dart';
+import 'package:lapticon_app/core/theme/tema.dart';
 import 'package:lapticon_app/data/models/encomienda.dart';
 import 'package:lapticon_app/data/models/estado.dart';
 import 'package:lapticon_app/features/viajero/widgets/viajero_widgets.dart';
@@ -17,7 +17,7 @@ const _encomienda = Encomienda(
 );
 
 Widget _wrap(Widget child) => MaterialApp(
-  theme: AppTheme.light(useGoogleFonts: false),
+  theme: construirTema(Brightness.light, useGoogleFonts: false),
   home: Scaffold(
     body: SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -50,7 +50,7 @@ void main() {
     bool? resultado;
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light(useGoogleFonts: false),
+        theme: construirTema(Brightness.light, useGoogleFonts: false),
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(

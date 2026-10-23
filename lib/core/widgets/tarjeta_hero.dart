@@ -5,11 +5,6 @@ import '../theme/tema.dart';
 import 'presionable.dart';
 import 'progreso.dart';
 
-/// Degradado de la barra de avance dentro de la tarjeta principal.
-const degradadoProgreso = LinearGradient(
-  colors: [Color(0xFFA7F3D0), Color(0xFF67E8F9)],
-);
-
 /// Tarjeta principal con degradado del rol (Medianoche / Cielo), brillo
 /// arriba a la izquierda, cifra grande y sub-tarjetas de vidrio. Texto
 /// blanco encima. Se llama `TarjetaHero` para no chocar con `Hero`.
@@ -140,7 +135,7 @@ class TarjetaHero extends StatelessWidget {
                     avance!,
                     alto: 8,
                     fondo: blanco.withValues(alpha: .2),
-                    degradado: degradadoProgreso,
+                    degradado: TonosVidrio.progreso,
                   ),
                 ],
                 if (subTarjetas.isNotEmpty) ...[
@@ -192,7 +187,7 @@ class SubTarjetaVidrio extends StatelessWidget {
     required this.etiqueta,
     required this.icono,
     required this.valor,
-    this.tono = const Color(0xFFA7F3D0),
+    this.tono = TonosVidrio.menta,
     this.onTap,
   });
 

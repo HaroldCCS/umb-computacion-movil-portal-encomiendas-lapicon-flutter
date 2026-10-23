@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lapticon_app/core/theme/app_theme.dart';
+import 'package:lapticon_app/core/theme/tema.dart';
 import 'package:lapticon_app/data/models/encomienda.dart';
 import 'package:lapticon_app/data/models/estado.dart';
 import 'package:lapticon_app/features/remitente/widgets/encomienda_ticket.dart';
 import 'package:lapticon_app/features/remitente/widgets/status_timeline.dart';
 
 Widget _wrap(Widget child) => MaterialApp(
-  theme: AppTheme.light(useGoogleFonts: false),
+  theme: construirTema(Brightness.light, useGoogleFonts: false),
   home: Scaffold(
     body: Padding(padding: const EdgeInsets.all(16), child: child),
   ),

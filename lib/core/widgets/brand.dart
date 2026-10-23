@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_tokens.dart';
 import '../theme/tema.dart';
 
 /// Logotipo: avión sobre el degradado Medianoche + "Lapticon" en
@@ -42,39 +41,6 @@ class BrandMark extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Cuerpo centrado con ancho máximo y desplazamiento, para formularios.
-class FormPage extends StatelessWidget {
-  const FormPage({super.key, required this.children, this.padding});
-
-  final List<Widget> children;
-  final EdgeInsetsGeometry? padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          padding:
-              padding ??
-              const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.lg,
-              ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppSpacing.maxContentWidth,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
-        ),
       ),
     );
   }

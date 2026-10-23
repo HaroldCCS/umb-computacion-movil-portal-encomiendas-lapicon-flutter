@@ -203,3 +203,63 @@ class ErrorCarga extends StatelessWidget {
     );
   }
 }
+
+/// Aviso flotante cuando el backend (Render gratuito) está despertando:
+/// sube desde abajo, justo encima de la barra de pestañas.
+class AvisoServidor extends StatelessWidget {
+  const AvisoServidor({super.key, required this.visible});
+
+  final ValueNotifier<bool> visible;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final duracion = Movimiento.duracion(
+      context,
+      const Duration(milliseconds: 250),
+    );
+    return ValueListenableBuilder<bool>(
+      valueListenable: visible,
+      builder: (context, mostrar, _) => AnimatedSlide(
+        offset: mostrar ? Offset.zero : const Offset(0, 1.5),
+        duration: duracion,
+        curve: Movimiento.entrada,
+        child: AnimatedOpacity(
+          opacity: mostrar ? 1 : 0,
+          duration: duracion,
+          child: Semantics(
+            liveRegion: true,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: c.superficie,
+                borderRadius: BorderRadius.circular(Medidas.radioCampo),
+                border: Border.all(color: c.separador),
+                boxShadow: c.sombraTarjeta,
+              ),
+              child: Row(
+                children: [
+                  SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: c.marca,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Despertando el servidor… la primera carga puede '
+                      'tardar hasta un minuto.',
+                      style: TextStyle(fontSize: 15, color: c.texto),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

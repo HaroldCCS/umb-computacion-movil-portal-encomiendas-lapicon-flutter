@@ -188,6 +188,24 @@ abstract final class Degradados {
       rol == Rol.remitente ? remitente : viajero;
 }
 
+/// Tonos claros para íconos y barras sobre la tarjeta principal (vidrio).
+abstract final class TonosVidrio {
+  static const menta = Color(0xFFA7F3D0);
+  static const ambar = Color(0xFFFDE68A);
+  static const celeste = Color(0xFF67E8F9);
+
+  /// Barra de avance dentro de la tarjeta principal.
+  static const progreso = LinearGradient(colors: [menta, celeste]);
+}
+
+/// Ícono que identifica a cada rol (paquete y avión).
+extension IconoRol on Rol {
+  IconData get icono => switch (this) {
+    Rol.remitente => Icons.inventory_2_outlined,
+    Rol.viajero => Icons.flight_takeoff,
+  };
+}
+
 /// Colores de íconos en recuadro pastel (el fondo es el color al 14 %).
 abstract final class Pastel {
   static const azul = Color(0xFF3B82F6);
@@ -286,6 +304,9 @@ ThemeData construirTema(Brightness brillo, {bool useGoogleFonts = true}) {
     dividerColor: c.separador,
     extensions: [c],
     materialTapTargetSize: MaterialTapTargetSize.padded,
+    // La respuesta táctil es la escala de Presionable, no la onda.
+    splashFactory: NoSplash.splashFactory,
+    highlightColor: Colors.transparent,
     // Barra de navegación estilo iOS (título grande que se compacta).
     cupertinoOverrideTheme: CupertinoThemeData(
       brightness: brillo,

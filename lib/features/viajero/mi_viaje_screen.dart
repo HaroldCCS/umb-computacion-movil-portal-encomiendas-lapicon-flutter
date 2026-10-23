@@ -129,7 +129,7 @@ class MiViajeScreen extends ConsumerWidget {
           SubTarjetaVidrio(
             etiqueta: 'Te pagan',
             icono: Icons.payments_outlined,
-            tono: const Color(0xFFFDE68A),
+            tono: TonosVidrio.ambar,
             valor: switch (ganancias.length) {
               _ when !entregas.hasValue => const Text('…'),
               0 => const Text('Aún nada'),

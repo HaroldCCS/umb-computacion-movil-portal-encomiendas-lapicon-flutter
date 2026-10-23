@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
-import '../../core/theme/app_tokens.dart';
 import '../../core/theme/tema.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/esqueleto.dart';
@@ -82,7 +81,7 @@ class PerfilScreen extends ConsumerWidget {
                 FilaAccion(
                   titulo: 'Cambiar a ${rol.opuesto.nombre.toLowerCase()}',
                   subtitulo: rol.opuesto.descripcion,
-                  icono: rol.opuesto.icon,
+                  icono: rol.opuesto.icono,
                   // Ámbar oscuro (legible) para remitente, cielo para viajero.
                   colorIcono: rol.opuesto == Rol.remitente
                       ? c.atencion
@@ -174,7 +173,7 @@ class _Cabecera extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(rol.icon, size: 18, color: c.sobreAcento(rol)),
+                Icon(rol.icono, size: 18, color: c.sobreAcento(rol)),
                 const SizedBox(width: 6),
                 Text(
                   rol.nombre,

@@ -120,11 +120,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: _loading
+                        child: Enlace(
+                          '¿Olvidaste tu contraseña?',
+                          onTap: _loading
                               ? null
                               : () => context.push(Routes.recuperar),
-                          child: const Text('¿Olvidaste tu contraseña?'),
                         ),
                       ),
                       if (_error != null) ...[
@@ -148,11 +148,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             '¿No tienes cuenta?',
                             style: TextStyle(fontSize: 15, color: c.texto2),
                           ),
-                          TextButton(
-                            onPressed: _loading
+                          Enlace(
+                            'Crear cuenta',
+                            onTap: _loading
                                 ? null
                                 : () => context.push(Routes.registro),
-                            child: const Text('Crear cuenta'),
                           ),
                         ],
                       ),

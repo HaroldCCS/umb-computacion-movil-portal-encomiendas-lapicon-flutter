@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
-import '../../core/theme/app_tokens.dart';
 import '../../core/theme/tema.dart';
 import '../../core/widgets/aviso.dart';
 import '../../core/widgets/boton.dart';
@@ -152,7 +151,7 @@ class TarjetaRol extends StatelessWidget {
                   color: acento,
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(rol.icon, color: c.sobreAcento(rol), size: 28),
+                child: Icon(rol.icono, color: c.sobreAcento(rol), size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(

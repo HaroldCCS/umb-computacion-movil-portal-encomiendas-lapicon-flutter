@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/route_ticket.dart';
-import '../../../core/widgets/status_chip.dart';
+import '../../../core/widgets/insignia.dart';
 import '../../../data/models/encomienda.dart';
 import '../../../core/theme/tema.dart';
 
@@ -37,7 +37,7 @@ class EncomiendaTicket extends StatelessWidget {
         ),
         TicketDetail(label: 'Valor', value: Fmt.dinero(e.valor, e.moneda)),
       ],
-      trailing: StatusChip.encomienda(e.estado),
+      trailing: Insignia.encomienda(e.estado),
     );
   }
 }

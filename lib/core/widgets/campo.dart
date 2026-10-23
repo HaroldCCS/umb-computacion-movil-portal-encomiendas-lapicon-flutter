@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/tema.dart';
+import 'boton.dart';
 
 /// Decoración común de los campos: relleno `superficie2`, sin borde en
 /// reposo, borde `marca` con foco y `peligro` con error.
@@ -176,13 +177,13 @@ class _CampoState extends State<Campo> {
 
     Widget? sufijo = widget.sufijo;
     if (widget.contrasena) {
-      sufijo = IconButton(
-        tooltip: _oculto ? 'Mostrar contraseña' : 'Ocultar contraseña',
-        icon: Icon(
-          _oculto ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-          color: c.texto2,
-        ),
-        onPressed: () => setState(() => _oculto = !_oculto),
+      sufijo = BotonIcono(
+        icono: _oculto
+            ? Icons.visibility_outlined
+            : Icons.visibility_off_outlined,
+        etiqueta: _oculto ? 'Mostrar contraseña' : 'Ocultar contraseña',
+        borde: false,
+        onTap: () => setState(() => _oculto = !_oculto),
       );
     } else if (sufijo == null && valido) {
       sufijo = Icon(

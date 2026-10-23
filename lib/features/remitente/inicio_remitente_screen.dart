@@ -142,7 +142,7 @@ class InicioRemitenteScreen extends ConsumerWidget {
             SubTarjetaVidrio(
               etiqueta: 'Disponibles',
               icono: Icons.schedule,
-              tono: const Color(0xFFFDE68A),
+              tono: TonosVidrio.ambar,
               valor: Text('${r.disponibles}'),
             ),
           ],

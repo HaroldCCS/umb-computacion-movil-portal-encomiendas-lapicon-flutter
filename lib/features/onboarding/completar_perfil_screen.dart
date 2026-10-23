@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/boton.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/pantalla.dart';
 import '../../providers.dart';
@@ -18,10 +19,7 @@ class CompletarPerfilScreen extends ConsumerWidget {
     return Pantalla(
       titulo: 'Tu perfil',
       subtitulo: 'Así te reconocerán remitentes y viajeros.',
-      accion: TextButton(
-        onPressed: session.cerrarSesion,
-        child: const Text('Salir'),
-      ),
+      accion: Enlace('Salir', onTap: session.cerrarSesion),
       hijos: user == null
           ? const []
           : [

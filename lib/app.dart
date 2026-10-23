@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/tema.dart';
-import 'core/theme/app_tokens.dart';
-import 'core/widgets/feedback_views.dart';
+import 'core/widgets/aviso.dart';
 import 'core/widgets/toast.dart';
 import 'providers.dart';
 
@@ -45,15 +44,15 @@ class LapticonApp extends ConsumerWidget {
           children: [
             ?child,
             Positioned(
-              left: AppSpacing.md,
-              right: AppSpacing.md,
+              left: Medidas.margen,
+              right: Medidas.margen,
               // Justo encima de la barra de pestañas flotante.
               bottom:
                   MediaQuery.paddingOf(context).bottom +
                   Medidas.alturaTabbar +
                   20,
               child: IgnorePointer(
-                child: ServerWakingBanner(visible: api.serverWaking),
+                child: AvisoServidor(visible: api.serverWaking),
               ),
             ),
           ],

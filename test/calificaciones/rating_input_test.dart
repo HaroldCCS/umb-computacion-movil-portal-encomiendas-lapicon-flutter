@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lapticon_app/core/theme/app_theme.dart';
+import 'package:lapticon_app/core/theme/tema.dart';
 import 'package:lapticon_app/data/models/resumen_calificaciones.dart';
 import 'package:lapticon_app/features/calificaciones/rating_input.dart';
 import 'package:lapticon_app/features/calificaciones/resenas_screen.dart';
@@ -45,7 +45,7 @@ void main() {
     var valor = 0;
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light(useGoogleFonts: false),
+        theme: construirTema(Brightness.light, useGoogleFonts: false),
         home: Scaffold(
           body: Center(
             child: StatefulBuilder(
