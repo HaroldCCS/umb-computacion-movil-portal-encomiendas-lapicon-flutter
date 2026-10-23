@@ -51,6 +51,38 @@ abstract final class Fmt {
     return fecha(d, corta: true);
   }
 
+  static const _mesesLargos = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ];
+
+  static const _dias = [
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábado',
+    'domingo',
+  ];
+
+  /// `Miércoles, 22 de octubre` (para el encabezado de Inicio).
+  static String fechaLarga(DateTime d) {
+    final dia = _dias[d.weekday - 1];
+    return '${dia[0].toUpperCase()}${dia.substring(1)}, '
+        '${d.day} de ${_mesesLargos[d.month - 1]}';
+  }
+
   /// `14:05`.
   static String hora(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';

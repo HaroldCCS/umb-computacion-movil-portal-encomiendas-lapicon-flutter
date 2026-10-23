@@ -42,10 +42,14 @@ class Tarjeta extends StatelessWidget {
       child: child,
     );
     if (onTap == null) return caja;
-    return Semantics(
-      button: true,
-      label: etiqueta,
-      child: Presionable(onTap: onTap, escala: 0.98, child: caja),
+    // Un solo nodo para el lector: el texto de la tarjeta es su etiqueta
+    // (por eso no se anidan botones dentro de una tarjeta tocable).
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        label: etiqueta,
+        child: Presionable(onTap: onTap, escala: 0.98, child: caja),
+      ),
     );
   }
 }

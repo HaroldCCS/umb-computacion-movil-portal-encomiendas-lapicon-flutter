@@ -117,3 +117,53 @@ class Boton extends StatelessWidget {
     );
   }
 }
+
+/// Botón redondo de solo ícono (encabezados y barras): 48 dp, con etiqueta
+/// para el lector de pantalla y tooltip.
+class BotonIcono extends StatelessWidget {
+  const BotonIcono({
+    super.key,
+    required this.icono,
+    required this.etiqueta,
+    required this.onTap,
+    this.borde = true,
+  });
+
+  final IconData icono;
+  final String etiqueta;
+  final VoidCallback? onTap;
+
+  /// Círculo con superficie y borde; sin él, solo el ícono.
+  final bool borde;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Tooltip(
+      message: etiqueta,
+      child: Semantics(
+        button: true,
+        enabled: onTap != null,
+        label: etiqueta,
+        onTap: onTap,
+        excludeSemantics: true,
+        child: Presionable(
+          onTap: onTap,
+          escala: 0.9,
+          child: Container(
+            width: Medidas.alturaBotonIcono,
+            height: Medidas.alturaBotonIcono,
+            decoration: borde
+                ? BoxDecoration(
+                    color: c.superficie,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: c.separador),
+                  )
+                : null,
+            child: Icon(icono, size: 22, color: c.texto),
+          ),
+        ),
+      ),
+    );
+  }
+}

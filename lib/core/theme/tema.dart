@@ -179,7 +179,8 @@ abstract final class Degradados {
   static const viajero = LinearGradient(
     begin: Alignment(-0.6, -1),
     end: Alignment(0.6, 1),
-    colors: [Color(0xFF2F7BD0), Color(0xFF0B63C4), Color(0xFF0A3F80)],
+    // Más oscuro que el Cielo de los botones: texto blanco pequeño con AA.
+    colors: [Color(0xFF1A5FB0), Color(0xFF0B4F9E), Color(0xFF083A75)],
     stops: [0, .42, 1],
   );
 
@@ -214,6 +215,11 @@ abstract final class Medidas {
 
   /// Ancho máximo del contenido en tabletas / pantallas grandes.
   static const anchoMaximo = 480.0;
+
+  /// Relleno inferior de una pestaña para que la barra flotante no tape el
+  /// último contenido (docs/08 §8.6-7).
+  static double bajoBarra(BuildContext context) =>
+      alturaTabbar + MediaQuery.paddingOf(context).bottom + 24;
 }
 
 /// Curvas y duraciones del sistema. Con "reducir movimiento" se usa
@@ -280,11 +286,29 @@ ThemeData construirTema(Brightness brillo, {bool useGoogleFonts = true}) {
     dividerColor: c.separador,
     extensions: [c],
     materialTapTargetSize: MaterialTapTargetSize.padded,
+    // Barra de navegación estilo iOS (título grande que se compacta).
     cupertinoOverrideTheme: CupertinoThemeData(
       brightness: brillo,
       primaryColor: c.marca,
       barBackgroundColor: c.fondo.withValues(alpha: .78),
       scaffoldBackgroundColor: c.fondo,
+      textTheme: CupertinoTextThemeData(
+        primaryColor: c.marca,
+        textStyle: TextStyle(fontSize: 17, color: c.texto),
+        actionTextStyle: TextStyle(fontSize: 17, color: c.marca),
+        navTitleTextStyle: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: c.texto,
+        ),
+        navLargeTitleTextStyle: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
+          color: c.texto,
+        ),
+        navActionTextStyle: TextStyle(fontSize: 17, color: c.marca),
+      ),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: c.fondo,

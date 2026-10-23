@@ -140,50 +140,52 @@ class FilaAccion extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final colorTitulo = destructiva ? c.peligro : c.texto;
-    return Semantics(
-      button: true,
-      child: Presionable(
-        onTap: onTap,
-        escala: 0.99,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: Medidas.alturaFila),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                if (icono != null) ...[
-                  IconoEnCaja(
-                    icono!,
-                    color: destructiva ? c.peligro : (colorIcono ?? c.marca),
-                    tam: 36,
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        titulo,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w500,
-                          color: colorTitulo,
-                        ),
-                      ),
-                      if (subtitulo != null)
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        child: Presionable(
+          onTap: onTap,
+          escala: 0.99,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Medidas.alturaFila),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  if (icono != null) ...[
+                    IconoEnCaja(
+                      icono!,
+                      color: destructiva ? c.peligro : (colorIcono ?? c.marca),
+                      tam: 36,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          subtitulo!,
-                          style: TextStyle(fontSize: 13, color: c.texto2),
+                          titulo,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w500,
+                            color: colorTitulo,
+                          ),
                         ),
-                    ],
+                        if (subtitulo != null)
+                          Text(
+                            subtitulo!,
+                            style: TextStyle(fontSize: 13, color: c.texto2),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                if (flecha && !destructiva)
-                  ExcludeSemantics(
-                    child: Icon(Icons.chevron_right_rounded, color: c.texto3),
-                  ),
-              ],
+                  if (flecha && !destructiva)
+                    ExcludeSemantics(
+                      child: Icon(Icons.chevron_right_rounded, color: c.texto3),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
