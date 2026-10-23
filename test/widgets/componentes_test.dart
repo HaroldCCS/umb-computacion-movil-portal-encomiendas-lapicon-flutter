@@ -307,6 +307,27 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('Grupo ocupa todo el ancho aunque el contenido sea corto', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(const Grupo(titulo: 'Corto', hijos: [Text('USD 10')])),
+    );
+    // Ancho disponible: la ventana menos el relleno de 16 a cada lado.
+    final disponible = tester.getSize(find.byType(Scaffold)).width - 32;
+    final tarjeta = tester.getSize(
+      find
+          .ancestor(of: find.text('USD 10'), matching: find.byType(Container))
+          .first,
+    );
+    expect(tarjeta.width, disponible);
+    // Y el contenido corto queda a la izquierda, no centrado.
+    expect(
+      tester.getTopLeft(find.text('USD 10')).dx,
+      tester.getTopLeft(find.byType(Grupo)).dx,
+    );
+  });
+
   test('Avatar: iniciales y tono estable', () {
     expect(Avatar.iniciales('Laura Gómez'), 'LG');
     expect(Avatar.iniciales('  andrés  '), 'A');

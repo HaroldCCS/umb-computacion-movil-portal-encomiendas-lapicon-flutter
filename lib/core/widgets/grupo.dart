@@ -17,7 +17,8 @@ class Grupo extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // Estirada: la tarjeta ocupa todo el ancho aunque el contenido sea corto.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (titulo != null)
           Padding(
@@ -44,6 +45,9 @@ class Grupo extends StatelessWidget {
             border: c.conSombra ? null : Border.all(color: c.separador),
           ),
           child: Column(
+            // Las filas también se estiran: el contenido corto va a la
+            // izquierda, no centrado.
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (var i = 0; i < hijos.length; i++) ...[
                 if (i > 0) Divider(height: 1, thickness: 1, color: c.separador),
