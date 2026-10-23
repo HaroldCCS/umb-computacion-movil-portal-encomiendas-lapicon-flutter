@@ -85,7 +85,13 @@ class Fila extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(etiqueta, style: TextStyle(fontSize: 15, color: c.texto2)),
+            // Flexible: con letra grande la etiqueta también se parte.
+            Flexible(
+              child: Text(
+                etiqueta,
+                style: TextStyle(fontSize: 15, color: c.texto2),
+              ),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

@@ -32,12 +32,18 @@ class BrandMark extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            'Lapticon',
-            style: context.t.displaySmall?.copyWith(
-              fontSize: size * 0.6,
-              letterSpacing: -0.3,
-              color: c.texto,
+          // Es la marca: con letra grande se ajusta al ancho, no desborda.
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Lapticon',
+                style: context.t.displaySmall?.copyWith(
+                  fontSize: size * 0.6,
+                  letterSpacing: -0.3,
+                  color: c.texto,
+                ),
+              ),
             ),
           ),
         ],

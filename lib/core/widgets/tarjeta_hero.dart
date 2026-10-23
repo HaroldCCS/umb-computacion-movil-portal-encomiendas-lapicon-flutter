@@ -86,17 +86,19 @@ class TarjetaHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Wrap: con letra grande la etiqueta baja a otra línea.
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    Expanded(
-                      child: Text(
-                        titulo,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: blanco.withValues(alpha: .95),
-                        ),
+                    Text(
+                      titulo,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: blanco.withValues(alpha: .95),
                       ),
                     ),
                     ?insignia,
@@ -159,17 +161,21 @@ class TarjetaHero extends StatelessWidget {
       ),
     );
 
-    final conSemantica = semantica == null
+    final tocable = onTap == null
         ? contenido
-        : Semantics(
-            label: semantica,
-            button: onTap != null,
-            excludeSemantics: true,
-            onTap: onTap,
-            child: contenido,
-          );
-    if (onTap == null) return conSemantica;
-    return Presionable(onTap: onTap, escala: 0.98, child: conSemantica);
+        : Presionable(onTap: onTap, escala: 0.98, child: contenido);
+    // Etiqueta y acción de toque en el mismo nodo del lector de pantalla.
+    if (semantica != null) {
+      return Semantics(
+        label: semantica,
+        button: onTap != null,
+        onTap: onTap,
+        excludeSemantics: true,
+        child: tocable,
+      );
+    }
+    if (onTap == null) return contenido;
+    return MergeSemantics(child: Semantics(button: true, child: tocable));
   }
 }
 
@@ -283,12 +289,14 @@ class EtiquetaVidrio extends StatelessWidget {
       children: [
         Icon(icono, size: 14, color: Colors.white),
         const SizedBox(width: 4),
-        Text(
-          texto,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+        Flexible(
+          child: Text(
+            texto,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ),
       ],
