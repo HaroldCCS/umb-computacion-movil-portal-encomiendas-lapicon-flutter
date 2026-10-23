@@ -371,6 +371,25 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('pase: detalles a la izquierda e insignia a la derecha', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _cuerpo(
+        const RouteTicket(
+          origen: 'Bogotá',
+          destino: 'Miami',
+          details: [TicketDetail(label: 'Te pagan', value: 'USD 20')],
+          trailing: Text('Estado'),
+        ),
+      ),
+    );
+    final pase = tester.getRect(find.byType(RouteTicket));
+    // 20 de relleno interno a cada lado.
+    expect(tester.getTopLeft(find.text('TE PAGAN')).dx, pase.left + 20);
+    expect(tester.getTopRight(find.text('Estado')).dx, pase.right - 20);
+  });
+
   testWidgets('la etiqueta del pase cabe en una línea ("TE PAGAN")', (
     tester,
   ) async {

@@ -76,15 +76,19 @@ class RouteTicket extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             // Wrap: con letra grande la insignia baja a otra línea en vez
             // de desbordar.
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 20,
-              runSpacing: 10,
-              children: [
-                Wrap(spacing: 20, runSpacing: 10, children: details),
-                ?trailing,
-              ],
+            // A todo el ancho: si no, el Wrap se encoge y la columna lo centra.
+            child: SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 20,
+                runSpacing: 10,
+                children: [
+                  Wrap(spacing: 20, runSpacing: 10, children: details),
+                  ?trailing,
+                ],
+              ),
             ),
           ),
       ],

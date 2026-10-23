@@ -82,18 +82,22 @@ class Fila extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: Medidas.alturaFila),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        // Los dos lados flexibles y repartidos a los extremos: con letra grande
+        // ambos se parten, y el valor siempre queda pegado a la derecha.
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Flexible: con letra grande la etiqueta también se parte.
             Flexible(
+              flex: 2,
               child: Text(
                 etiqueta,
                 style: TextStyle(fontSize: 15, color: c.texto2),
               ),
             ),
             const SizedBox(width: 16),
-            Expanded(
+            Flexible(
+              flex: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [

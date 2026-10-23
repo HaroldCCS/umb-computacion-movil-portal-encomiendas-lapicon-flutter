@@ -328,6 +328,18 @@ void main() {
     );
   });
 
+  testWidgets('Fila: etiqueta a la izquierda y valor pegado a la derecha', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(const Grupo(hijos: [Fila('Teléfono', Text('3001234567'))])),
+    );
+    final fila = tester.getRect(find.byType(Fila));
+    // 16 de relleno a cada lado.
+    expect(tester.getTopLeft(find.text('Teléfono')).dx, fila.left + 16);
+    expect(tester.getTopRight(find.text('3001234567')).dx, fila.right - 16);
+  });
+
   test('Avatar: iniciales y tono estable', () {
     expect(Avatar.iniciales('Laura Gómez'), 'LG');
     expect(Avatar.iniciales('  andrés  '), 'A');
