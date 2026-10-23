@@ -7,6 +7,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/tema.dart';
 import 'core/theme/app_tokens.dart';
 import 'core/widgets/feedback_views.dart';
+import 'core/widgets/toast.dart';
 import 'providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -37,19 +38,22 @@ class LapticonApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // Aviso global cuando el backend tarda (arranque en frío de Render).
-      builder: (context, child) => Stack(
-        children: [
-          ?child,
-          Positioned(
-            left: AppSpacing.md,
-            right: AppSpacing.md,
-            bottom: MediaQuery.paddingOf(context).bottom + 88,
-            child: IgnorePointer(
-              child: ServerWakingBanner(visible: api.serverWaking),
+      // Avisos flotantes (toasts) arriba de todo y aviso global cuando el
+      // backend tarda (arranque en frío de Render).
+      builder: (context, child) => Toasts(
+        child: Stack(
+          children: [
+            ?child,
+            Positioned(
+              left: AppSpacing.md,
+              right: AppSpacing.md,
+              bottom: MediaQuery.paddingOf(context).bottom + 88,
+              child: IgnorePointer(
+                child: ServerWakingBanner(visible: api.serverWaking),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
