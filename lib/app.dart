@@ -47,7 +47,11 @@ class LapticonApp extends ConsumerWidget {
             Positioned(
               left: AppSpacing.md,
               right: AppSpacing.md,
-              bottom: MediaQuery.paddingOf(context).bottom + 88,
+              // Justo encima de la barra de pestañas flotante.
+              bottom:
+                  MediaQuery.paddingOf(context).bottom +
+                  Medidas.alturaTabbar +
+                  20,
               child: IgnorePointer(
                 child: ServerWakingBanner(visible: api.serverWaking),
               ),

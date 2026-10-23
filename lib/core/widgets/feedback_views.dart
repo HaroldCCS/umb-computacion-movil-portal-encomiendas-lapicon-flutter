@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_tokens.dart';
+import 'toast.dart';
 
 /// Estado vacío: ícono en círculo + título + texto + acción (docs/07 §7.5).
 class EmptyState extends StatelessWidget {
@@ -193,22 +194,17 @@ class ServerWakingBanner extends StatelessWidget {
   }
 }
 
-/// Muestra un mensaje breve en la parte inferior.
+/// Alias temporal de [mostrarToast] (docs/08 §8.7): el mensaje sale arriba
+/// y no queda debajo de la barra flotante. Se borra en la fase 6.
 void showAppSnackBar(
   BuildContext context,
   String message, {
   bool error = false,
-}) {
-  final scheme = Theme.of(context).colorScheme;
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: error ? scheme.error : null,
-      ),
-    );
-}
+}) => mostrarToast(
+  context,
+  message,
+  tipo: error ? TipoToast.error : TipoToast.exito,
+);
 
 /// Diálogo de confirmación con verbo explícito (docs/07 §7.7).
 Future<bool> confirmar(

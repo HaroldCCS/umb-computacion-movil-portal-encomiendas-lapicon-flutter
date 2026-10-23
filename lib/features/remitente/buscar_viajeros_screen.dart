@@ -12,7 +12,8 @@ import '../catalogo/ciudad_field.dart';
 import 'remitente_providers.dart';
 import 'widgets/trust_row.dart';
 
-/// Pestaña "Viajeros": quién viaja desde una ciudad, con su calificación.
+/// "Buscar viajeros" (desde Vista rápida del Inicio): quién viaja desde una
+/// ciudad, con su calificación.
 class BuscarViajerosScreen extends ConsumerStatefulWidget {
   const BuscarViajerosScreen({super.key});
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/routes.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/feedback_views.dart';
 import '../../providers.dart';
@@ -44,8 +45,10 @@ class ConversacionesScreen extends ConsumerWidget {
                       );
                     }
                     return ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.xs,
+                      // Relleno inferior para la barra flotante.
+                      padding: EdgeInsets.only(
+                        top: AppSpacing.xs,
+                        bottom: Medidas.bajoBarra(context),
                       ),
                       itemCount: lista.length,
                       separatorBuilder: (context, i) => const Divider(

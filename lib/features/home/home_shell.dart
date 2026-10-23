@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/theme/vocabulario.dart';
+import '../../core/widgets/barra_pestanas.dart';
 import '../../data/models/rol.dart';
 import '../../providers.dart';
+import '../calificaciones/calificaciones_providers.dart';
 import '../chat/conversaciones_screen.dart';
 import '../perfil/perfil_screen.dart';
-import '../remitente/buscar_viajeros_screen.dart';
+import '../remitente/envios_logic.dart';
 import '../remitente/envios_screen.dart';
+import '../remitente/inicio_remitente_screen.dart';
+import '../remitente/remitente_providers.dart';
 import '../viajero/explorar_screen.dart';
 import '../viajero/mi_viaje_screen.dart';
+import '../viajero/viajero_logic.dart';
+import '../viajero/viajero_providers.dart';
+import '../viajero/viajero_routes.dart';
+import 'home_providers.dart';
 
-/// Inicio por rol con barra de navegación inferior (docs/07 §7.4).
-/// Cada pestaña es la pantalla principal de una funcionalidad.
+/// Inicio por rol con la barra de pestañas flotante y el botón "+" de la
+/// acción principal (docs/08 §8.4):
+///
+///   REMITENTE  Inicio · Envíos · Chats · Perfil      (+) Nueva encomienda
+///   VIAJERO    Mi viaje · Explorar · Chats · Perfil  (+) Registrar viaje,
+///              solo si no hay viaje activo.
+///
+/// Los contadores avisan de algo por hacer: entregas por calificar
+/// (remitente) y encomiendas por entregar (viajero).
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -20,7 +37,6 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
-  int _index = 0;
   Rol? _rolAnterior;
 
   @override
@@ -30,94 +46,125 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       listenable: session,
       builder: (context, _) {
         final rol = session.rol ?? Rol.remitente;
+        var actual = ref.watch(pestanaInicioProvider);
         if (_rolAnterior != rol) {
+          // Al cambiar de rol se vuelve a la primera pestaña.
+          final primera = _rolAnterior == null;
           _rolAnterior = rol;
-          _index = 0; // al cambiar de rol se vuelve a la primera pestaña
+          if (!primera && actual != Pestanas.inicio) {
+            actual = Pestanas.inicio;
+            Future.microtask(
+              () => ref.read(pestanaInicioProvider.notifier).ir(actual),
+            );
+          }
         }
-        final tabs = _tabs(rol);
+
+        final paginas = switch (rol) {
+          Rol.remitente => const [
+            InicioRemitenteScreen(),
+            EnviosScreen(),
+            ConversacionesScreen(),
+            PerfilScreen(),
+          ],
+          Rol.viajero => const [
+            MiViajeScreen(),
+            ExplorarScreen(),
+            ConversacionesScreen(),
+            PerfilScreen(),
+          ],
+        };
 
         return Scaffold(
-          body: IndexedStack(
-            index: _index,
-            children: [for (final t in tabs) t.page],
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: (i) => setState(() => _index = i),
-            destinations: [
-              for (final t in tabs)
-                NavigationDestination(
-                  icon: Icon(t.icon),
-                  selectedIcon: Icon(t.selectedIcon),
-                  label: t.label,
-                ),
-            ],
+          // El contenido pasa por debajo de la barra de vidrio; cada
+          // pestaña deja `Medidas.bajoBarra` de relleno inferior.
+          extendBody: true,
+          body: IndexedStack(index: actual, children: paginas),
+          bottomNavigationBar: BarraPestanas(
+            items: _items(rol),
+            actual: actual,
+            onCambio: ref.read(pestanaInicioProvider.notifier).ir,
+            onMas: _accionPrincipal(rol),
+            etiquetaMas: Vocabulario.de(rol).crear,
           ),
         );
       },
     );
   }
 
-  List<_Tab> _tabs(Rol rol) {
-    const chats = _Tab(
-      label: 'Chats',
-      icon: Icons.chat_bubble_outline,
-      selectedIcon: Icons.chat_bubble,
-      page: ConversacionesScreen(),
+  List<PestanaItem> _items(Rol rol) {
+    const chats = PestanaItem(
+      Icons.chat_bubble_outline,
+      'Chats',
+      iconoActivo: Icons.chat_bubble,
     );
-    const perfil = _Tab(
-      label: 'Perfil',
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
-      page: PerfilScreen(),
+    const perfil = PestanaItem(
+      Icons.person_outline,
+      'Perfil',
+      iconoActivo: Icons.person,
     );
-    return switch (rol) {
-      Rol.remitente => const [
-        _Tab(
-          label: 'Envíos',
-          icon: Icons.inventory_2_outlined,
-          selectedIcon: Icons.inventory_2,
-          page: EnviosScreen(),
-        ),
-        _Tab(
-          label: 'Viajeros',
-          icon: Icons.travel_explore_outlined,
-          selectedIcon: Icons.travel_explore,
-          page: BuscarViajerosScreen(),
-        ),
-        chats,
-        perfil,
-      ],
-      Rol.viajero => const [
-        _Tab(
-          label: 'Mi viaje',
-          icon: Icons.flight_outlined,
-          selectedIcon: Icons.flight,
-          page: MiViajeScreen(),
-        ),
-        _Tab(
-          label: 'Explorar',
-          icon: Icons.search,
-          selectedIcon: Icons.manage_search,
-          page: ExplorarScreen(),
-        ),
-        chats,
-        perfil,
-      ],
-    };
+    switch (rol) {
+      case Rol.remitente:
+        final porCalificar = switch (ref.watch(misEncomiendasProvider)) {
+          AsyncData(:final value) => ResumenEnvios.de(
+            value,
+            calificadasDe(ref),
+          ).porCalificar.length,
+          _ => 0,
+        };
+        return [
+          const PestanaItem(
+            Icons.home_outlined,
+            'Inicio',
+            iconoActivo: Icons.home_rounded,
+          ),
+          PestanaItem(
+            Icons.inventory_2_outlined,
+            'Envíos',
+            iconoActivo: Icons.inventory_2,
+            contador: porCalificar,
+            etiquetaContador: '$porCalificar por calificar',
+          ),
+          chats,
+          perfil,
+        ];
+      case Rol.viajero:
+        final pendientes = switch (ref.watch(misEntregasProvider)) {
+          AsyncData(:final value) => porEntregar(value).length,
+          _ => 0,
+        };
+        return [
+          PestanaItem(
+            Icons.flight_outlined,
+            'Mi viaje',
+            iconoActivo: Icons.flight,
+            contador: pendientes,
+            etiquetaContador: '$pendientes por entregar',
+          ),
+          const PestanaItem(
+            Icons.search,
+            'Explorar',
+            iconoActivo: Icons.manage_search,
+          ),
+          chats,
+          perfil,
+        ];
+    }
   }
-}
 
-class _Tab {
-  const _Tab({
-    required this.label,
-    required this.icon,
-    required this.selectedIcon,
-    required this.page,
-  });
-
-  final String label;
-  final IconData icon;
-  final IconData selectedIcon;
-  final Widget page;
+  /// El "+" de la barra. El viajero con viaje activo no lo ve (solo se
+  /// puede tener un viaje a la vez).
+  VoidCallback? _accionPrincipal(Rol rol) {
+    switch (rol) {
+      case Rol.remitente:
+        return () => abrirNuevaEncomienda(context, ref);
+      case Rol.viajero:
+        final sinViaje = switch (ref.watch(miViajeProvider)) {
+          AsyncData(:final value) => value == null,
+          _ => false,
+        };
+        return sinViaje
+            ? () => context.push(ViajeroRoutes.registrarViaje)
+            : null;
+    }
+  }
 }

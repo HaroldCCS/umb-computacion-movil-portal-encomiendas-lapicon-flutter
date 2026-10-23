@@ -102,3 +102,54 @@ Encomienda conEstado(Encomienda e, EstadoEncomienda estado) => Encomienda(
   fechaVencimiento: e.fechaVencimiento,
   creadaEn: e.creadaEn,
 );
+
+/// Lo que muestra el Inicio del remitente (docs/08 §8.4).
+class ResumenEnvios {
+  const ResumenEnvios({
+    required this.enCamino,
+    required this.disponibles,
+    required this.entregadas,
+    required this.porCalificar,
+  });
+
+  factory ResumenEnvios.de(List<Encomienda> lista, Set<String> calificadas) {
+    final grupos = agruparEnvios(lista);
+    final activas = grupos[PestanaEnvios.activas]!;
+    final entregadas = grupos[PestanaEnvios.entregadas]!;
+    return ResumenEnvios(
+      enCamino: activas
+          .where((e) => e.estado == EstadoEncomienda.tomada)
+          .length,
+      disponibles: activas
+          .where((e) => e.estado == EstadoEncomienda.disponible)
+          .length,
+      entregadas: entregadas.length,
+      // Solo se puede calificar si se sabe quién la llevó.
+      porCalificar: [
+        for (final e in entregadas)
+          if (e.viajeroUid != null && !calificadas.contains(e.id)) e,
+      ],
+    );
+  }
+
+  final int enCamino;
+  final int disponibles;
+  final int entregadas;
+  final List<Encomienda> porCalificar;
+
+  int get activas => enCamino + disponibles;
+
+  /// Frase bajo la cifra de la tarjeta principal.
+  String get nota {
+    if (activas == 0) {
+      return // Espacio de no separación: el "+" no queda solo en otra línea.
+      'No tienes envíos activos. Publica uno con el botón\u00A0+.';
+    }
+    final partes = [
+      if (enCamino > 0) '$enCamino ${enCamino == 1 ? 'va' : 'van'} en camino',
+      if (disponibles > 0)
+        '$disponibles ${disponibles == 1 ? 'espera' : 'esperan'} viajero',
+    ];
+    return '${partes.join(' · ')}.';
+  }
+}

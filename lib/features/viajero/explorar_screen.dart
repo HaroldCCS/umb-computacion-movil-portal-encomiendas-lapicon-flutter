@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/feedback_views.dart';
 import '../../core/widgets/route_ticket.dart';
@@ -93,7 +94,13 @@ class _Disponibles extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(AppSpacing.md),
+        // Relleno inferior para que la barra flotante no tape la lista.
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+          Medidas.bajoBarra(context),
+        ),
         children: [
           ...cabecera,
           ...disponibles.when(

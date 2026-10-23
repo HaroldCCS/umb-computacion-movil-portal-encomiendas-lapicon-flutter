@@ -178,3 +178,34 @@ List<String> resumenVuelo(Map<String, dynamic> json) {
   if (llegada != null) datos.add('Llega a: $llegada');
   return datos;
 }
+
+/// Tomadas que todavía debo entregar.
+List<Encomienda> porEntregar(List<Encomienda> entregas) => [
+  for (final e in entregas)
+    if (e.estado == EstadoEncomienda.tomada) e,
+];
+
+/// Entregadas que aún no califiqué (y de las que sé quién es el remitente).
+List<Encomienda> porCalificarViajero(
+  List<Encomienda> entregas,
+  Set<String> calificadas,
+) => [
+  for (final e in entregas)
+    if (e.estado.finalizada &&
+        e.remitenteUid != null &&
+        !calificadas.contains(e.id))
+      e,
+];
+
+/// Lo que me pagan por las encomiendas tomadas o entregadas, por moneda
+/// (`{'USD': 40, 'COP': 50000}`), sin mezclar monedas.
+Map<String, num> gananciasPorMoneda(List<Encomienda> entregas) {
+  final total = <String, num>{};
+  for (final e in entregas) {
+    if (e.estado == EstadoEncomienda.tomada || e.estado.finalizada) {
+      final m = e.moneda.toUpperCase();
+      total[m] = (total[m] ?? 0) + e.valor;
+    }
+  }
+  return total;
+}

@@ -4,96 +4,87 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
-import '../../core/widgets/feedback_views.dart';
-import '../../core/widgets/route_ticket.dart';
-import '../../core/widgets/status_chip.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../../core/widgets/esqueleto.dart';
+import '../../core/widgets/grupo.dart';
+import '../../core/widgets/insignia.dart';
+import '../../core/widgets/monto.dart';
+import '../../core/widgets/pantalla.dart';
+import '../../core/widgets/tarjeta_accion.dart';
+import '../../core/widgets/tarjeta_hero.dart';
+import '../../data/models/encomienda.dart';
 import '../../data/models/rol.dart';
 import '../../data/models/viaje.dart';
 import '../../providers.dart';
+import '../calificaciones/calificaciones_providers.dart';
+import '../home/home_providers.dart';
+import 'viajero_logic.dart';
 import 'viajero_providers.dart';
 import 'viajero_routes.dart';
 import 'widgets/viajero_widgets.dart';
 
-/// Pestaña "Mi viaje": viaje activo, mis entregas e historial.
+/// Pestaña "Mi viaje" (docs/08 §8.4): tarjeta principal con el viaje activo,
+/// avisos de lo que falta por hacer, mis entregas e historial.
 class MiViajeScreen extends ConsumerWidget {
   const MiViajeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final miViaje = ref.watch(miViajeProvider);
-    final sinViaje = switch (miViaje) {
-      AsyncData(:final value) => value == null,
-      _ => false,
-    };
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi viaje'),
-        actions: [
-          IconButton(
-            tooltip: 'Asistente',
-            icon: const Icon(Icons.support_agent),
-            onPressed: () => context.push(Routes.asistente),
-          ),
-        ],
+    Future<void> refrescar() async {
+      refrescarViajero(ref);
+      try {
+        await ref.read(miViajeProvider.future);
+      } on Object {
+        // El error se muestra en la propia pantalla.
+      }
+    }
+
+    return Pantalla(
+      titulo: 'Mi viaje',
+      conBarraPestanas: true,
+      alActualizar: refrescar,
+      accion: BotonIcono(
+        icono: Icons.support_agent,
+        etiqueta: 'Asistente',
+        borde: false,
+        onTap: () => context.push(Routes.asistente),
       ),
-      floatingActionButton: sinViaje
-          ? FloatingActionButton.extended(
-              onPressed: () => context.push(ViajeroRoutes.registrarViaje),
-              icon: const Icon(Icons.flight_takeoff),
-              label: const Text('Registrar viaje'),
-            )
-          : null,
-      body: miViaje.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(
-          message: e is AppException ? e.message : 'Intenta de nuevo.',
-          onRetry: () => ref.invalidate(miViajeProvider),
-        ),
-        data: (viaje) =>
-            viaje == null ? const _SinViaje() : _ConViaje(viaje: viaje),
-      ),
-    );
-  }
-}
-
-class _SinViaje extends StatelessWidget {
-  const _SinViaje();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: EmptyState(
-            icon: Icons.flight_takeoff,
-            title: 'Aún no tienes un viaje activo',
-            message:
+      hijos: switch (miViaje) {
+        AsyncData(value: final viaje?) => _conViaje(context, ref, viaje),
+        AsyncData() => [
+          Vacio(
+            titulo: 'Aún no tienes un viaje activo',
+            icono: Icons.flight_takeoff,
+            texto:
                 'Registra tu vuelo para ver encomiendas de tu ruta y ganar '
                 'llevándolas.',
-            color: Rol.viajero.accent(Theme.of(context).brightness),
+            accion: Boton(
+              'Registrar viaje',
+              icono: Icons.flight_takeoff,
+              onTap: () => context.push(ViajeroRoutes.registrarViaje),
+            ),
           ),
-        ),
-        const Padding(
-          // Deja espacio para el botón flotante.
-          padding: EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, 88),
-          child: _HistorialTile(),
-        ),
-      ],
+          const _Historial(),
+        ],
+        AsyncError(:final error) => [
+          ErrorCarga(
+            mensaje: error is AppException
+                ? error.message
+                : 'No pudimos cargar tu viaje.',
+            alReintentar: () => ref.invalidate(miViajeProvider),
+          ),
+        ],
+        _ => [const EsqueletoLista(primero: 220, cantidad: 2, alto: 150)],
+      },
     );
   }
-}
 
-class _ConViaje extends ConsumerWidget {
-  const _ConViaje({required this.viaje});
-
-  final Viaje viaje;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+  List<Widget> _conViaje(BuildContext context, WidgetRef ref, Viaje viaje) {
     final uid = ref.watch(sessionProvider).user?.uid;
     final verificado = switch (ref.watch(viajeroLocalStoreProvider)) {
       AsyncData(:final value) =>
@@ -102,175 +93,229 @@ class _ConViaje extends ConsumerWidget {
       _ => false,
     };
     final entregas = ref.watch(misEntregasProvider);
+    final lista = entregas.value ?? const <Encomienda>[];
+    final pendientes = porEntregar(lista);
+    final porCalificar = porCalificarViajero(lista, calificadasDe(ref));
+    final ganancias = gananciasPorMoneda(lista);
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        refrescarViajero(ref);
-        try {
-          await ref.read(miViajeProvider.future);
-        } on Object {
-          // El error se muestra en la propia vista.
-        }
-      },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          RouteTicket(
-            origen: viaje.ciudadOrigen,
-            destino: viaje.ciudadDestino,
-            accent: Rol.viajero.accent(theme.brightness),
-            details: [
-              TicketDetail(
-                label: 'Vuelo',
-                value: viaje.numeroVuelo.isEmpty ? '—' : viaje.numeroVuelo,
-              ),
-              TicketDetail(
-                label: 'Fecha',
-                value: Fmt.fecha(viaje.fechaViaje, corta: true),
-              ),
-            ],
-            trailing: StatusChip.viaje(viaje.estado),
+    final vuelo = viaje.numeroVuelo.isEmpty ? 'Vuelo' : viaje.numeroVuelo;
+    final nota = '$vuelo · ${Fmt.fecha(viaje.fechaViaje)}';
+    // Si el vuelo no se pudo verificar, la tarjeta lo dice siempre.
+    final etiquetaVuelo = verificado ? 'Vuelo verificado' : 'Sin verificar';
+
+    return [
+      TarjetaHero(
+        rol: Rol.viajero,
+        titulo: 'Tu viaje',
+        principal: Text(
+          '${viaje.ciudadOrigen} → ${viaje.ciudadDestino}',
+          maxLines: 2,
+          style: const TextStyle(fontSize: 30, height: 1.1),
+        ),
+        nota: nota,
+        semantica:
+            'Tu viaje de ${viaje.ciudadOrigen} a ${viaje.ciudadDestino}. '
+            '$nota. $etiquetaVuelo. Llevas ${pendientes.length} por entregar.',
+        insignia: EtiquetaVidrio(
+          etiquetaVuelo,
+          icono: verificado ? Icons.verified : Icons.help_outline_rounded,
+        ),
+        subTarjetas: [
+          SubTarjetaVidrio(
+            etiqueta: 'Por entregar',
+            icono: Icons.luggage,
+            valor: Text(entregas.hasValue ? '${pendientes.length}' : '…'),
           ),
-          if (verificado) ...[
-            const SizedBox(height: AppSpacing.sm),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: VueloVerificadoBadge(),
-            ),
-          ],
-          const SeccionHeader('Mis entregas'),
-          entregas.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(AppSpacing.lg),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => _Aviso(
-              texto: e is AppException
-                  ? e.message
-                  : 'No pudimos cargar tus entregas.',
-              accion: 'Reintentar',
-              onAccion: () => ref.invalidate(misEntregasProvider),
-            ),
-            data: (lista) => lista.isEmpty
-                ? const _Aviso(
-                    texto:
-                        'Aún no has tomado encomiendas. Revisa la pestaña '
-                        'Explorar para ver las de tu ruta.',
-                  )
-                : Column(
-                    children: [
-                      for (final e in lista) ...[
-                        EncomiendaTicket(
-                          encomienda: e,
-                          onTap: () =>
-                              context.push(ViajeroRoutes.encomienda, extra: e),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                      ],
-                    ],
-                  ),
+          SubTarjetaVidrio(
+            etiqueta: 'Te pagan',
+            icono: Icons.payments_outlined,
+            tono: const Color(0xFFFDE68A),
+            valor: switch (ganancias.length) {
+              _ when !entregas.hasValue => const Text('…'),
+              0 => const Text('Aún nada'),
+              1 => Monto(ganancias.values.first, moneda: ganancias.keys.first),
+              _ => Text('${ganancias.length} monedas'),
+            },
           ),
-          const SizedBox(height: AppSpacing.md),
-          const _HistorialTile(),
         ],
       ),
-    );
+      if (pendientes.isNotEmpty)
+        TarjetaAccion(
+          icono: Icons.luggage,
+          titulo: pendientes.length == 1
+              ? 'Tienes una encomienda por entregar'
+              : 'Tienes ${pendientes.length} encomiendas por entregar',
+          texto: pendientes.length == 1
+              ? 'Va a ${pendientes.first.ciudadDestino}. Márcala como '
+                    'entregada al dejarla.'
+              : 'Márcalas como entregadas cuando las dejes en destino.',
+          onTap: () => abrirEncomiendaViajero(
+            context,
+            pendientes.first,
+            accion: AccionPendiente.entregar,
+          ),
+        ),
+      for (final e in porCalificar.take(2))
+        TarjetaAccion(
+          titulo: 'Entregaste la encomienda a ${e.ciudadDestino}',
+          texto:
+              'Califica a ${e.remitenteNombre ?? 'quien te la confió'}: tu '
+              'opinión ayuda a otros viajeros.',
+          onTap: () => abrirEncomiendaViajero(
+            context,
+            e,
+            accion: AccionPendiente.calificar,
+          ),
+        ),
+      _MisEntregas(entregas: entregas),
+      const _Historial(),
+    ];
   }
 }
 
-/// Historial de viajes, colapsado por defecto.
-class _HistorialTile extends ConsumerWidget {
-  const _HistorialTile();
+/// Abre el detalle de una encomienda del viajero, con [accion] resaltada si
+/// se llega desde un aviso.
+void abrirEncomiendaViajero(
+  BuildContext context,
+  Encomienda e, {
+  AccionPendiente? accion,
+}) => context.push(
+  accion?.en(ViajeroRoutes.encomienda) ?? ViajeroRoutes.encomienda,
+  extra: e,
+);
+
+class _MisEntregas extends ConsumerWidget {
+  const _MisEntregas({required this.entregas});
+
+  final AsyncValue<List<Encomienda>> entregas;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final historial = ref.watch(historialViajesProvider);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      // Material propio: el ListTile pinta su tinta encima del fondo.
-      child: Material(
-        type: MaterialType.transparency,
-        child: ExpansionTile(
-          shape: const Border(),
-          collapsedShape: const Border(),
-          leading: const Icon(Icons.history),
-          title: const Text('Historial de viajes'),
-          subtitle: historial.when(
-            data: (l) => Text(
-              l.isEmpty
-                  ? 'Sin viajes registrados'
-                  : '${l.length} ${l.length == 1 ? 'viaje' : 'viajes'}',
-            ),
-            loading: () => const Text('Cargando…'),
-            error: (_, _) => const Text('No disponible'),
-          ),
-          children: historial.when(
-            data: (lista) => [
-              for (final v in lista)
-                ListTile(
-                  leading: Icon(
-                    Icons.flight,
-                    color: Rol.viajero.accent(theme.brightness),
-                  ),
-                  title: Text('${v.ciudadOrigen} → ${v.ciudadDestino}'),
-                  subtitle: Text(
-                    '${v.numeroVuelo.isEmpty ? 'Vuelo' : v.numeroVuelo} · '
-                    '${Fmt.fecha(v.fechaViaje)}',
-                  ),
-                  trailing: StatusChip.viaje(v.estado),
-                ),
-            ],
-            loading: () => const [LinearProgressIndicator()],
-            error: (e, _) => [
-              ListTile(
-                title: Text(
-                  e is AppException
-                      ? e.message
-                      : 'No pudimos cargar el historial.',
-                ),
-                trailing: TextButton(
-                  onPressed: () => ref.invalidate(historialViajesProvider),
-                  child: const Text('Reintentar'),
-                ),
-              ),
-            ],
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          header: true,
+          child: Text('Mis entregas', style: context.t.titleLarge),
         ),
-      ),
+        const SizedBox(height: 12),
+        switch (entregas) {
+          AsyncData(:final value) when value.isEmpty => Aviso(
+            'Aún no has tomado encomiendas. En Explorar ves las de tu ruta.',
+            accion: Boton(
+              'Ir a Explorar',
+              chico: true,
+              ancho: false,
+              variante: VarianteBoton.tonal,
+              onTap: () =>
+                  ref.read(pestanaInicioProvider.notifier).ir(Pestanas.segunda),
+            ),
+          ),
+          AsyncData(:final value) => Column(
+            children: [
+              for (var i = 0; i < value.length; i++) ...[
+                if (i > 0) const SizedBox(height: 12),
+                EncomiendaTicket(
+                  encomienda: value[i],
+                  onTap: () => abrirEncomiendaViajero(context, value[i]),
+                ),
+              ],
+            ],
+          ),
+          AsyncError(:final error) => Aviso(
+            error is AppException
+                ? error.message
+                : 'No pudimos cargar tus entregas.',
+            tipo: TipoAviso.error,
+            accion: Boton(
+              'Reintentar',
+              chico: true,
+              ancho: false,
+              variante: VarianteBoton.secundario,
+              onTap: () => ref.invalidate(misEntregasProvider),
+            ),
+          ),
+          _ => const EsqueletoLista(cantidad: 1, alto: 150),
+        },
+      ],
     );
   }
 }
 
-class _Aviso extends StatelessWidget {
-  const _Aviso({required this.texto, this.accion, this.onAccion});
+/// Últimos viajes en lista agrupada. Si no hay ninguno, no se muestra.
+class _Historial extends ConsumerWidget {
+  const _Historial();
 
-  final String texto;
-  final String? accion;
-  final VoidCallback? onAccion;
+  static const maximo = 5;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final historial = ref.watch(historialViajesProvider);
+    return switch (historial) {
+      AsyncData(:final value) when value.isEmpty => const SizedBox.shrink(),
+      AsyncData(:final value) => Grupo(
+        titulo: 'Historial de viajes',
+        pie: value.length > maximo
+            ? 'Se muestran tus últimos $maximo viajes.'
+            : null,
+        hijos: [for (final v in value.take(maximo)) _FilaViaje(viaje: v)],
+      ),
+      AsyncError() => Aviso(
+        'No pudimos cargar el historial de viajes.',
+        tipo: TipoAviso.error,
+        accion: Boton(
+          'Reintentar',
+          chico: true,
+          ancho: false,
+          variante: VarianteBoton.secundario,
+          onTap: () => ref.invalidate(historialViajesProvider),
+        ),
+      ),
+      _ => const Esqueleto(alto: 120, radio: Medidas.radioTarjeta),
+    };
+  }
+}
+
+class _FilaViaje extends StatelessWidget {
+  const _FilaViaje({required this.viaje});
+
+  final Viaje viaje;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            texto,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+    final c = context.c;
+    final vuelo = viaje.numeroVuelo.isEmpty ? 'Vuelo' : viaje.numeroVuelo;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: Medidas.alturaFila),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            ExcludeSemantics(child: Icon(Icons.flight, color: c.viajero)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${viaje.ciudadOrigen} → ${viaje.ciudadDestino}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: c.texto,
+                    ),
+                  ),
+                  Text(
+                    '$vuelo · ${Fmt.fecha(viaje.fechaViaje)}',
+                    style: TextStyle(fontSize: 13, color: c.texto2),
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (accion != null && onAccion != null)
-            TextButton(onPressed: onAccion, child: Text(accion!)),
-        ],
+            const SizedBox(width: 8),
+            Insignia.viaje(viaje.estado),
+          ],
+        ),
       ),
     );
   }
