@@ -11,6 +11,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/route_ticket.dart';
 import '../../data/models/rol.dart';
 import '../../providers.dart';
+import 'calificaciones_providers.dart';
 import 'rating_input.dart';
 
 /// Formulario para calificar (Práctica 6) → `POST /api/ratings`.
@@ -65,6 +66,11 @@ class _CalificarScreenState extends ConsumerState<CalificarScreen> {
             encomiendaId: args.encomienda?.id,
           );
       ref.invalidate(resumenCalificacionesProvider(args.usuarioDestino));
+      final uid = ref.read(sessionProvider).user?.uid;
+      final id = args.encomienda?.id;
+      if (uid != null && id != null && id.isNotEmpty) {
+        await ref.read(calificadasProvider(uid).notifier).marcar(id);
+      }
       if (!mounted) return;
       showAppSnackBar(context, '¡Gracias por calificar!');
       context.pop(true);

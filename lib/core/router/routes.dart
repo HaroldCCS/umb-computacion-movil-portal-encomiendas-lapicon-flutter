@@ -31,6 +31,25 @@ abstract final class Routes {
   static const asistente = '/asistente';
 }
 
+/// Acción pendiente a la que lleva un aviso: el detalle abre con esa acción
+/// visible y resaltada (docs/08 §8.4, "los enlaces llevan directo a donde
+/// está la acción"). Va como `?accion=` en la ruta del detalle.
+enum AccionPendiente {
+  calificar,
+  entregar;
+
+  static AccionPendiente? deRuta(Map<String, String> query) {
+    final valor = query['accion'];
+    for (final a in values) {
+      if (a.name == valor) return a;
+    }
+    return null;
+  }
+
+  /// `/remitente/encomienda` → `/remitente/encomienda?accion=calificar`.
+  String en(String ruta) => '$ruta?accion=$name';
+}
+
 /// Argumentos de [Routes.chat].
 class ChatArgs {
   const ChatArgs({required this.otroUid, this.otroNombre, this.encomienda});

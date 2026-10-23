@@ -6,12 +6,14 @@ import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/accion_resaltada.dart';
 import '../../core/widgets/feedback_views.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/encomienda.dart';
 import '../../data/models/estado.dart';
 import '../../data/models/rol.dart';
 import '../../providers.dart';
+import '../calificaciones/calificaciones_providers.dart';
 import 'envios_logic.dart';
 import 'widgets/encomienda_ticket.dart';
 import 'widgets/status_timeline.dart';
@@ -20,9 +22,16 @@ import 'widgets/trust_row.dart';
 /// Detalle de una encomienda del remitente (patrón maestro-detalle).
 /// Al cerrar devuelve `true` si la encomienda cambió (para refrescar la lista).
 class EncomiendaDetalleScreen extends ConsumerStatefulWidget {
-  const EncomiendaDetalleScreen({super.key, required this.encomienda});
+  const EncomiendaDetalleScreen({
+    super.key,
+    required this.encomienda,
+    this.accion,
+  });
 
   final Encomienda encomienda;
+
+  /// Acción a la que se llegó desde un aviso (se resalta al abrir).
+  final AccionPendiente? accion;
 
   @override
   ConsumerState<EncomiendaDetalleScreen> createState() =>
@@ -106,6 +115,7 @@ class _EncomiendaDetalleScreenState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final viajero = _e.viajeroUid;
+    final calificada = _calificada || calificadasDe(ref).contains(_e.id);
 
     // El gesto/botón "atrás" del sistema también devuelve si hubo cambios.
     return PopScope<Object?>(
@@ -124,70 +134,86 @@ class _EncomiendaDetalleScreenState
               constraints: const BoxConstraints(
                 maxWidth: AppSpacing.maxContentWidth,
               ),
-              child: ListView(
+              child: SingleChildScrollView(
+                // No perezoso: así un aviso puede llevar hasta la acción.
                 padding: const EdgeInsets.all(AppSpacing.md),
-                children: [
-                  EncomiendaTicket(encomienda: _e),
-                  const SizedBox(height: AppSpacing.lg),
-                  _Tarjeta(
-                    titulo: 'ESTADO',
-                    child: StatusTimeline(
-                      estado: _e.estado,
-                      calificada: _calificada,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    EncomiendaTicket(encomienda: _e),
+                    const SizedBox(height: AppSpacing.lg),
+                    _Tarjeta(
+                      titulo: 'ESTADO',
+                      child: StatusTimeline(
+                        estado: _e.estado,
+                        calificada: calificada,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _Tarjeta(
-                    titulo: 'DETALLES',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _Dato(
-                          icon: Icons.payments_outlined,
-                          label: 'Pago al viajero',
-                          value: Fmt.dinero(_e.valor, _e.moneda),
-                        ),
-                        _Dato(
-                          icon: Icons.notes,
-                          label: 'Qué envías',
-                          value: _e.observaciones.isEmpty
-                              ? 'Sin descripción'
-                              : _e.observaciones,
-                        ),
-                        _Dato(
-                          icon: Icons.event_available_outlined,
-                          label: 'Publicada',
-                          value: Fmt.fecha(_e.creadaEn),
-                        ),
-                        if (_e.fechaVencimiento != null)
-                          _Dato(
-                            icon: Icons.event_busy_outlined,
-                            label: 'Fecha límite',
-                            value: Fmt.fecha(_e.fechaVencimiento),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (viajero != null) ...[
                     const SizedBox(height: AppSpacing.md),
                     _Tarjeta(
-                      titulo: 'QUIÉN LA LLEVA',
-                      child: TrustRow(uid: viajero, nombre: _e.viajeroNombre),
+                      titulo: 'DETALLES',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _Dato(
+                            icon: Icons.payments_outlined,
+                            label: 'Pago al viajero',
+                            value: Fmt.dinero(_e.valor, _e.moneda),
+                          ),
+                          _Dato(
+                            icon: Icons.notes,
+                            label: 'Qué envías',
+                            value: _e.observaciones.isEmpty
+                                ? 'Sin descripción'
+                                : _e.observaciones,
+                          ),
+                          _Dato(
+                            icon: Icons.event_available_outlined,
+                            label: 'Publicada',
+                            value: Fmt.fecha(_e.creadaEn),
+                          ),
+                          if (_e.fechaVencimiento != null)
+                            _Dato(
+                              icon: Icons.event_busy_outlined,
+                              label: 'Fecha límite',
+                              value: Fmt.fecha(_e.fechaVencimiento),
+                            ),
+                        ],
+                      ),
                     ),
-                  ],
-                  if (_e.estado == EstadoEncomienda.disponible) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'Cuando un viajero de tu ruta la tome, te avisaremos '
-                      'aquí y podrán coordinar por chat.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (viajero != null) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      _Tarjeta(
+                        titulo: 'QUIÉN LA LLEVA',
+                        child: TrustRow(uid: viajero, nombre: _e.viajeroNombre),
+                      ),
+                    ],
+                    if (_e.estado == EstadoEncomienda.disponible) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Cuando un viajero de tu ruta la tome, te avisaremos '
+                        'aquí y podrán coordinar por chat.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.xl),
+                    AccionResaltada(
+                      activa:
+                          widget.accion == AccionPendiente.calificar &&
+                          _e.estado.finalizada &&
+                          !calificada,
+                      aviso:
+                          'Califica a ${_e.viajeroNombre ?? 'quien la llevó'}: '
+                          'tu opinión ayuda a otros remitentes.',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _acciones(theme, calificada: calificada),
                       ),
                     ),
                   ],
-                  const SizedBox(height: AppSpacing.xl),
-                  ..._acciones(theme),
-                ],
+                ),
               ),
             ),
           ),
@@ -196,7 +222,7 @@ class _EncomiendaDetalleScreenState
     );
   }
 
-  List<Widget> _acciones(ThemeData theme) {
+  List<Widget> _acciones(ThemeData theme, {required bool calificada}) {
     switch (_e.estado) {
       case EstadoEncomienda.disponible:
         return [
@@ -225,7 +251,7 @@ class _EncomiendaDetalleScreenState
         ];
       case EstadoEncomienda.entregada || EstadoEncomienda.recibida:
         return [
-          if (_calificada)
+          if (calificada)
             Text(
               '¡Gracias por calificar! Tu opinión ayuda a otros remitentes.',
               textAlign: TextAlign.center,

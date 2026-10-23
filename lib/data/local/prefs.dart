@@ -20,6 +20,18 @@ class Prefs {
 
   Future<void> borrarRol(String uid) => _prefs.remove('rol_$uid');
 
+  /// Encomiendas que este usuario ya calificó desde este teléfono. El
+  /// backend ignora `encomiendaId` al calificar (docs/03), así que es la
+  /// única forma de saber qué entregas siguen "por calificar".
+  Set<String> calificadas(String uid) => {
+    ...?_prefs.getStringList('calificadas_$uid'),
+  };
+
+  Future<void> marcarCalificada(String uid, String encomiendaId) =>
+      _prefs.setStringList('calificadas_$uid', [
+        ...{...calificadas(uid), encomiendaId},
+      ]);
+
   /// Lista de strings cacheada (países, ciudades) con fecha de vencimiento.
   List<String>? listaCacheada(String key) {
     final raw = _prefs.getString('cache_$key');
