@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
+import '../../core/widgets/presionable.dart';
 
 /// Etiqueta de cada puntaje (docs/07 §7.6 "Calificar").
 String etiquetaPuntaje(int puntaje) => switch (puntaje) {
@@ -63,8 +64,8 @@ class RatingInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.secondary;
+    final c = context.c;
+    const color = Pastel.ambar;
     final animar = !MediaQuery.disableAnimationsOf(context);
     final duracion = animar ? const Duration(milliseconds: 180) : Duration.zero;
 
@@ -86,12 +87,13 @@ class RatingInput extends StatelessWidget {
                   button: true,
                   selected: i <= value,
                   label: '$i de 5 estrellas',
+                  onTap: () => onChanged(i),
                   excludeSemantics: true,
                   child: SizedBox(
                     width: starSize + 12,
                     height: starSize + 12,
-                    child: InkResponse(
-                      radius: (starSize + 12) / 2,
+                    child: Presionable(
+                      escala: 0.9,
                       onTap: () => onChanged(i),
                       child: AnimatedScale(
                         scale: i <= value ? 1.08 : 1,
@@ -102,7 +104,7 @@ class RatingInput extends StatelessWidget {
                               ? Icons.star_rounded
                               : Icons.star_outline_rounded,
                           size: starSize,
-                          color: i <= value ? color : theme.colorScheme.outline,
+                          color: i <= value ? color : c.texto3,
                         ),
                       ),
                     ),
@@ -110,17 +112,19 @@ class RatingInput extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: 8),
           AnimatedSwitcher(
             duration: duracion,
             child: Text(
               value == 0 ? 'Toca una estrella' : etiquetaPuntaje(value),
               key: ValueKey(value),
               style: value == 0
-                  ? theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    )
-                  : theme.textTheme.titleMedium,
+                  ? TextStyle(fontSize: 15, color: c.texto2)
+                  : TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: c.texto,
+                    ),
             ),
           ),
         ],

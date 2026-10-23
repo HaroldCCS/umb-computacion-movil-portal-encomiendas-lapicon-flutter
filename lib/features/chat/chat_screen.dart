@@ -1,20 +1,22 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
-import '../../core/theme/app_tokens.dart';
-import '../../core/widgets/feedback_views.dart';
+import '../../core/theme/tema.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/avatar.dart';
+import '../../core/widgets/insignia.dart';
+import '../../core/widgets/pantalla.dart';
 import '../../core/widgets/route_ticket.dart';
-import '../../core/widgets/status_chip.dart';
 import '../../data/models/estado.dart';
 import '../../data/repositories/chat_repository.dart';
 import '../../providers.dart';
 import 'chat_providers.dart';
 import 'chat_service.dart';
-import 'models/conversacion.dart';
 import 'models/mensaje_chat.dart';
 import 'widgets/burbuja_mensaje.dart';
 import 'widgets/compositor_mensaje.dart';
@@ -32,6 +34,9 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _enviando = false;
 
+  /// Error del último envío: va encima del campo, junto a la acción.
+  String? _error;
+
   /// Se marca al re-consultar el estado justo antes de enviar.
   bool _cerradoAlEnviar = false;
 
@@ -41,20 +46,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<bool> _enviar(String miUid, String chatId, String texto) async {
-    setState(() => _enviando = true);
+    setState(() {
+      _enviando = true;
+      _error = null;
+    });
     try {
       // Reto 4: verificar que el chat siga abierto antes de cada envío.
       try {
         final estado = await ref.read(chatRepositoryProvider).estado(chatId);
         if (estado == EstadoChat.cerrado) {
-          if (mounted) {
-            setState(() => _cerradoAlEnviar = true);
-            showAppSnackBar(context, 'Este chat ya se cerró.', error: true);
-          }
+          if (mounted) setState(() => _cerradoAlEnviar = true);
           return false;
         }
       } on NetworkException catch (e) {
-        if (mounted) showAppSnackBar(context, e.message, error: true);
+        if (mounted) setState(() => _error = e.message);
         return false;
       } on AppException {
         // Si el backend no reconoce el chat (p. ej. aún no existe), se
@@ -84,9 +89,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       return true;
     } on Object catch (error) {
-      if (mounted) {
-        showAppSnackBar(context, mensajeErrorChat(error), error: true);
-      }
+      if (mounted) setState(() => _error = mensajeErrorChat(error));
       return false;
     } finally {
       if (mounted) setState(() => _enviando = false);
@@ -95,7 +98,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = context.c;
     final miUid = ref.watch(sessionProvider).user?.uid;
 
     if (miUid == null) {
@@ -111,36 +114,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final encomienda = widget.args.encomienda;
 
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Row(
+      backgroundColor: c.fondo,
+      appBar: CupertinoNavigationBar(
+        backgroundColor: c.fondo.withValues(alpha: .92),
+        border: Border(bottom: BorderSide(color: c.separador, width: .5)),
+        middle: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: theme.colorScheme.primary,
-              child: Text(
-                inicialesDe(_nombreOtro),
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
+            Avatar(_nombreOtro, tam: 32),
+            const SizedBox(width: 8),
+            Flexible(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _nombreOtro,
-                    style: theme.textTheme.titleMedium,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: c.texto,
+                    ),
                   ),
                   Text(
                     cerrado ? 'Chat cerrado' : 'Coordinen la entrega aquí',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: TextStyle(fontSize: 12, color: c.texto2),
                   ),
                 ],
               ),
@@ -152,44 +152,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         children: [
           if (encomienda != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.xs,
-                AppSpacing.md,
-                AppSpacing.xs,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: RouteTicket(
                 origen: encomienda.ciudadOrigen,
                 destino: encomienda.ciudadDestino,
                 compact: true,
-                trailing: StatusChip.encomienda(encomienda.estado),
+                accent: c.marca,
+                trailing: Insignia.encomienda(encomienda.estado),
               ),
             ),
           Expanded(
-            child: mensajes.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => ErrorView(
-                message: mensajeErrorChat(e),
-                onRetry: () => ref.invalidate(mensajesChatProvider(chatId)),
-              ),
-              data: (lista) {
-                if (lista.isEmpty) {
-                  return EmptyState(
-                    icon: Icons.waving_hand_outlined,
-                    title: 'Saluda a $_nombreOtro',
-                    message:
+            child: switch (mensajes) {
+              AsyncData(value: final lista) when lista.isEmpty => Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Vacio(
+                    titulo: 'Saluda a $_nombreOtro',
+                    icono: Icons.waving_hand_outlined,
+                    texto:
                         'Acuerden dónde y cuándo entregar el paquete. '
                         'Revisen juntos el contenido antes del viaje.',
-                  );
-                }
+                  ),
+                ),
+              ),
+              AsyncData(value: final lista) => () {
                 final items = agruparPorDia(lista).reversed.toList();
                 // Lista invertida: el mensaje más reciente queda abajo y la
                 // vista se mantiene al final cuando llegan mensajes nuevos.
                 return ListView.builder(
                   reverse: true,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+                    horizontal: 16,
+                    vertical: 12,
                   ),
                   itemCount: items.length,
                   itemBuilder: (context, i) => switch (items[i]) {
@@ -204,9 +198,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                   },
                 );
-              },
-            ),
+              }(),
+              AsyncError(:final error) => Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: ErrorCarga(
+                    mensaje: mensajeErrorChat(error),
+                    alReintentar: () =>
+                        ref.invalidate(mensajesChatProvider(chatId)),
+                  ),
+                ),
+              ),
+              _ => const Center(child: CircularProgressIndicator()),
+            },
           ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Aviso(_error!, tipo: TipoAviso.error),
+            ),
           CompositorMensaje(
             cerrado: cerrado,
             enviando: _enviando,
@@ -224,13 +234,15 @@ class ChatSinDatosScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chat')),
-      body: const EmptyState(
-        icon: Icons.forum_outlined,
-        title: 'No encontramos esta conversación',
-        message: 'Abre el chat desde una encomienda o desde la pestaña Chats.',
-      ),
+    return const Pantalla(
+      titulo: 'Chat',
+      hijos: [
+        Vacio(
+          titulo: 'No encontramos esta conversación',
+          icono: Icons.forum_outlined,
+          texto: 'Abre el chat desde una encomienda o desde la pestaña Chats.',
+        ),
+      ],
     );
   }
 }

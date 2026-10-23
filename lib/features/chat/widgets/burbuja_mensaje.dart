@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/tema.dart';
 import '../../../core/utils/formatters.dart';
 import '../models/mensaje_chat.dart';
 
-/// Burbuja de mensaje: propias a la derecha en `primary`, ajenas a la
-/// izquierda en `surfaceContainerLowest` con borde (docs/07 §7.6).
+/// Forma de las burbujas de chat (también la usa el asistente): esquina
+/// casi recta del lado de quien habla.
+BorderRadius formaBurbuja({required bool propia}) {
+  const radio = Radius.circular(20);
+  const pico = Radius.circular(6);
+  return BorderRadius.only(
+    topLeft: radio,
+    topRight: radio,
+    bottomLeft: propia ? radio : pico,
+    bottomRight: propia ? pico : radio,
+  );
+}
+
+/// Burbuja de mensaje: propias a la derecha en `marcaSolido`, ajenas a la
+/// izquierda en `superficie`.
 class BurbujaMensaje extends StatelessWidget {
   const BurbujaMensaje({
     super.key,
@@ -20,14 +33,10 @@ class BurbujaMensaje extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final fondo = propio ? scheme.primary : scheme.surfaceContainerLowest;
-    final texto = propio ? scheme.onPrimary : scheme.onSurface;
-    final secundario = propio
-        ? scheme.onPrimary.withValues(alpha: 0.8)
-        : scheme.onSurfaceVariant;
-    const radio = Radius.circular(18);
+    final c = context.c;
+    final fondo = propio ? c.marcaSolido : c.superficie;
+    final texto = propio ? c.sobreMarca : c.texto;
+    final secundario = propio ? c.sobreMarca.withValues(alpha: 0.85) : c.texto2;
     final hora = mensaje.pendiente ? 'Enviando…' : Fmt.hora(mensaje.fecha);
 
     return Semantics(
@@ -40,22 +49,15 @@ class BurbujaMensaje extends StatelessWidget {
             maxWidth: MediaQuery.sizeOf(context).width * 0.78,
           ),
           child: Container(
-            margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.sm + 2,
-              AppSpacing.xs + 2,
-              AppSpacing.sm + 2,
-              AppSpacing.xs,
-            ),
+            margin: const EdgeInsets.symmetric(vertical: 3),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
             decoration: BoxDecoration(
               color: fondo,
-              border: propio ? null : Border.all(color: scheme.outlineVariant),
-              borderRadius: BorderRadius.only(
-                topLeft: radio,
-                topRight: radio,
-                bottomLeft: propio ? radio : const Radius.circular(4),
-                bottomRight: propio ? const Radius.circular(4) : radio,
-              ),
+              borderRadius: formaBurbuja(propia: propio),
+              border: propio || c.conSombra
+                  ? null
+                  : Border.all(color: c.separador),
+              boxShadow: propio ? null : c.sombraTarjeta,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -66,7 +68,7 @@ class BurbujaMensaje extends StatelessWidget {
                   widthFactor: 1,
                   child: Text(
                     mensaje.texto,
-                    style: theme.textTheme.bodyLarge?.copyWith(color: texto),
+                    style: TextStyle(fontSize: 17, height: 1.35, color: texto),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -75,13 +77,14 @@ class BurbujaMensaje extends StatelessWidget {
                   children: [
                     Text(
                       hora,
-                      style: theme.textTheme.labelSmall?.copyWith(
+                      style: TextStyle(
+                        fontSize: 12,
                         color: secundario,
-                        letterSpacing: 0.2,
+                        fontFeatures: cifras,
                       ),
                     ),
                     if (propio) ...[
-                      const SizedBox(width: AppSpacing.xxs),
+                      const SizedBox(width: 4),
                       Icon(
                         mensaje.pendiente ? Icons.schedule : Icons.done,
                         size: 14,
@@ -107,23 +110,22 @@ class SeparadorDiaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = context.c;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xxs,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(999),
+            color: c.superficie2,
+            borderRadius: BorderRadius.circular(99),
           ),
           child: Text(
             etiqueta,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: c.texto2,
             ),
           ),
         ),

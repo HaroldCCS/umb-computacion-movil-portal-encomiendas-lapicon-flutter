@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/tema.dart';
+import '../../../core/widgets/presionable.dart';
 
-/// Barra inferior para escribir. Si [cerrado], se muestra deshabilitada con
-/// la explicación (reto 4: bloquear el envío cuando el chat se cierra).
+/// Barra inferior para escribir (chat y asistente). Si [cerrado], se muestra
+/// deshabilitada con la explicación (reto 4: bloquear el envío cuando el chat
+/// se cierra).
 class CompositorMensaje extends StatefulWidget {
   const CompositorMensaje({
     super.key,
     required this.onEnviar,
     this.cerrado = false,
     this.enviando = false,
+    this.pista = 'Escribe un mensaje',
+    this.textoCerrado = 'Este chat se cerró porque la entrega terminó.',
   });
 
   /// Devuelve `true` si el mensaje se envió (para limpiar el campo).
   final Future<bool> Function(String texto) onEnviar;
   final bool cerrado;
   final bool enviando;
+  final String pista;
+  final String textoCerrado;
 
   static const maxCaracteres = 500;
 
@@ -41,31 +47,29 @@ class _CompositorMensajeState extends State<CompositorMensaje> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final c = context.c;
+    final abajo = MediaQuery.paddingOf(context).bottom;
 
     if (widget.cerrado) {
       return Semantics(
         liveRegion: true,
         child: Container(
           width: double.infinity,
-          color: scheme.surfaceContainerHighest,
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.md + MediaQuery.paddingOf(context).bottom,
+          decoration: BoxDecoration(
+            color: c.superficie2,
+            border: Border(top: BorderSide(color: c.separador, width: .5)),
           ),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + abajo),
           child: Row(
             children: [
-              Icon(Icons.lock_outline, color: scheme.onSurfaceVariant),
-              const SizedBox(width: AppSpacing.sm),
+              ExcludeSemantics(
+                child: Icon(Icons.lock_outline, color: c.texto2),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Este chat se cerró porque la entrega terminó.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  widget.textoCerrado,
+                  style: TextStyle(fontSize: 15, color: c.texto2),
                 ),
               ),
             ],
@@ -76,66 +80,80 @@ class _CompositorMensajeState extends State<CompositorMensaje> {
 
     final puedeEnviar = _controller.text.trim().isNotEmpty && !widget.enviando;
 
-    return Material(
-      color: scheme.surfaceContainerLowest,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.sm,
-            AppSpacing.xs,
-            AppSpacing.xs,
-            AppSpacing.xs,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  minLines: 1,
-                  maxLines: 5,
-                  maxLength: CompositorMensaje.maxCaracteres,
-                  textCapitalization: TextCapitalization.sentences,
-                  keyboardType: TextInputType.multiline,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Escribe un mensaje',
-                    counterText: '',
-                    filled: true,
-                    fillColor: scheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide(color: scheme.outlineVariant),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide(color: scheme.outlineVariant),
-                    ),
-                  ),
+    return Container(
+      decoration: BoxDecoration(
+        color: c.fondo,
+        border: Border(top: BorderSide(color: c.separador, width: .5)),
+      ),
+      padding: EdgeInsets.fromLTRB(12, 8, 8, 8 + abajo),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              minLines: 1,
+              maxLines: 5,
+              maxLength: CompositorMensaje.maxCaracteres,
+              textCapitalization: TextCapitalization.sentences,
+              keyboardType: TextInputType.multiline,
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(fontSize: 17, color: c.texto),
+              decoration: InputDecoration(
+                hintText: widget.pista,
+                hintStyle: TextStyle(color: c.texto3),
+                counterText: '',
+                filled: true,
+                fillColor: c.superficie2,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: c.marca, width: 1.5),
                 ),
               ),
-              const SizedBox(width: AppSpacing.xs),
-              SizedBox.square(
-                dimension: 48,
-                child: widget.enviando
-                    ? const Padding(
-                        padding: EdgeInsets.all(AppSpacing.sm),
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      )
-                    : IconButton.filled(
-                        tooltip: 'Enviar mensaje',
-                        onPressed: puedeEnviar ? _enviar : null,
-                        icon: const Icon(Icons.send_rounded),
-                      ),
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: 'Enviar mensaje',
+            child: Semantics(
+              button: true,
+              enabled: puedeEnviar,
+              label: widget.enviando ? 'Enviando' : 'Enviar mensaje',
+              onTap: puedeEnviar ? _enviar : null,
+              excludeSemantics: true,
+              child: Presionable(
+                onTap: puedeEnviar ? _enviar : null,
+                escala: 0.9,
+                atenuarInactivo: !widget.enviando,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: c.marcaSolido,
+                    shape: BoxShape.circle,
+                  ),
+                  child: widget.enviando
+                      ? Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: c.sobreMarca,
+                          ),
+                        )
+                      : Icon(Icons.arrow_upward_rounded, color: c.sobreMarca),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

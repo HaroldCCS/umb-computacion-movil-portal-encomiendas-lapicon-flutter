@@ -1,7 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_tokens.dart';
+import '../../core/theme/tema.dart';
+import '../../core/widgets/aviso.dart';
+import '../../core/widgets/boton.dart';
+import '../chat/widgets/burbuja_mensaje.dart';
+import '../chat/widgets/compositor_mensaje.dart';
 import '../../data/models/rol.dart';
 import '../../providers.dart';
 import 'asistente_controller.dart';
@@ -20,40 +25,16 @@ List<String> sugerenciasAsistente(Rol? rol) => switch (rol) {
   ],
 };
 
-/// Chat con el asistente de IA (`POST /api/chatbot`).
-class AsistenteScreen extends ConsumerStatefulWidget {
+/// Chat con el asistente de IA (`POST /api/chatbot`). Hoy el backend
+/// responde 500: el error se muestra en la propia burbuja con "Reintentar".
+class AsistenteScreen extends ConsumerWidget {
   const AsistenteScreen({super.key});
 
   @override
-  ConsumerState<AsistenteScreen> createState() => _AsistenteScreenState();
-}
-
-class _AsistenteScreenState extends ConsumerState<AsistenteScreen> {
-  final _texto = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _texto.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _texto.dispose();
-    super.dispose();
-  }
-
-  void _enviar([String? sugerencia]) {
-    final texto = sugerencia ?? _texto.text;
-    if (texto.trim().isEmpty) return;
-    ref.read(asistenteProvider.notifier).enviar(texto);
-    if (sugerencia == null) _texto.clear();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
     final estado = ref.watch(asistenteProvider);
+    final notifier = ref.read(asistenteProvider.notifier);
     final rol = ref.watch(sessionProvider).rol;
     // La lista va invertida para que lo más reciente quede abajo.
     final items = <Widget>[
@@ -61,107 +42,85 @@ class _AsistenteScreenState extends ConsumerState<AsistenteScreen> {
       for (final m in estado.mensajes.reversed)
         _Burbuja(
           mensaje: m,
-          onReintentar: m.error
-              ? () => ref.read(asistenteProvider.notifier).reintentar(m)
-              : null,
+          onReintentar: m.error ? () => notifier.reintentar(m) : null,
         ),
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Asistente'),
-        actions: [
-          IconButton(
-            tooltip: 'Nueva conversación',
-            icon: const Icon(Icons.refresh),
-            onPressed: estado.esNueva
-                ? null
-                : () => ref.read(asistenteProvider.notifier).reiniciar(),
+      backgroundColor: c.fondo,
+      appBar: CupertinoNavigationBar(
+        backgroundColor: c.fondo.withValues(alpha: .92),
+        border: Border(bottom: BorderSide(color: c.separador, width: .5)),
+        middle: Text(
+          'Asistente',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: c.texto,
           ),
-        ],
+        ),
+        trailing: BotonIcono(
+          icono: Icons.refresh_rounded,
+          etiqueta: 'Nueva conversación',
+          borde: false,
+          onTap: estado.esNueva ? null : notifier.reiniciar,
+        ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                reverse: true,
-                padding: const EdgeInsets.all(AppSpacing.md),
-                children: items,
-              ),
-            ),
-            if (estado.esNueva && !estado.escribiendo)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  0,
-                  AppSpacing.md,
-                  AppSpacing.xs,
-                ),
-                child: Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final s in sugerenciasAsistente(rol))
-                      ActionChip(label: Text(s), onPressed: () => _enviar(s)),
-                  ],
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text(
-                'Respuestas generadas por IA; verifica la información '
-                'importante.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _texto,
-                      minLines: 1,
-                      maxLines: 4,
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _enviar(),
-                      decoration: InputDecoration(
-                        hintText: 'Escribe tu pregunta…',
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerLowest,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.sm,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
+      body: Column(
+        children: [
+          Expanded(
+            child: estado.esNueva && !estado.escribiendo
+                ? Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Vacio(
+                        titulo: '¿En qué te ayudo?',
+                        icono: Icons.support_agent,
+                        texto:
+                            'Pregúntame cómo publicar, viajar o qué puedes '
+                            'llevar.',
+                        accion: Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final s in sugerenciasAsistente(rol))
+                              Boton(
+                                s,
+                                chico: true,
+                                ancho: false,
+                                variante: VarianteBoton.tonal,
+                                onTap: () => notifier.enviar(s),
+                              ),
+                          ],
                         ),
                       ),
                     ),
+                  )
+                : ListView(
+                    reverse: true,
+                    padding: const EdgeInsets.all(16),
+                    children: items,
                   ),
-                  const SizedBox(width: AppSpacing.xs),
-                  IconButton.filled(
-                    tooltip: 'Enviar',
-                    constraints: const BoxConstraints.tightFor(
-                      width: 48,
-                      height: 48,
-                    ),
-                    onPressed: _texto.text.trim().isEmpty || estado.escribiendo
-                        ? null
-                        : _enviar,
-                    icon: const Icon(Icons.send_rounded),
-                  ),
-                ],
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: Text(
+              'Respuestas generadas por IA; verifica la información '
+              'importante.',
+              style: TextStyle(fontSize: 13, color: c.texto2),
+              textAlign: TextAlign.center,
             ),
-          ],
-        ),
+          ),
+          CompositorMensaje(
+            pista: 'Escribe tu pregunta…',
+            enviando: estado.escribiendo,
+            onEnviar: (texto) async {
+              notifier.enviar(texto);
+              return true;
+            },
+          ),
+        ],
       ),
     );
   }
@@ -175,15 +134,11 @@ class _Burbuja extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final c = context.c;
     final propio = mensaje.autor == AutorMensaje.usuario;
-    final fondo = mensaje.error
-        ? scheme.errorContainer
-        : (propio ? scheme.primary : scheme.surfaceContainerLowest);
-    final texto = mensaje.error
-        ? scheme.onErrorContainer
-        : (propio ? scheme.onPrimary : scheme.onSurface);
+    final (fondo, texto) = mensaje.error
+        ? (c.peligroSuave, c.peligro)
+        : (propio ? (c.marcaSolido, c.sobreMarca) : (c.superficie, c.texto));
 
     return Align(
       alignment: propio ? Alignment.centerRight : Alignment.centerLeft,
@@ -193,23 +148,17 @@ class _Burbuja extends StatelessWidget {
         ),
         child: Semantics(
           label: propio ? 'Tú' : 'Asistente',
+          liveRegion: !propio,
           child: Container(
-            margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
+            margin: const EdgeInsets.symmetric(vertical: 3),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             decoration: BoxDecoration(
               color: fondo,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(propio ? 18 : 4),
-                bottomRight: Radius.circular(propio ? 4 : 18),
-              ),
-              border: propio || mensaje.error
+              borderRadius: formaBurbuja(propia: propio),
+              border: propio || mensaje.error || c.conSombra
                   ? null
-                  : Border.all(color: scheme.outlineVariant),
+                  : Border.all(color: c.separador),
+              boxShadow: propio || mensaje.error ? null : c.sombraTarjeta,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,15 +166,19 @@ class _Burbuja extends StatelessWidget {
               children: [
                 Text(
                   mensaje.texto,
-                  style: theme.textTheme.bodyLarge?.copyWith(color: texto),
+                  style: TextStyle(fontSize: 17, height: 1.35, color: texto),
                 ),
-                if (onReintentar != null)
-                  TextButton.icon(
-                    onPressed: onReintentar,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Reintentar'),
-                    style: TextButton.styleFrom(foregroundColor: texto),
+                if (onReintentar != null) ...[
+                  const SizedBox(height: 8),
+                  Boton(
+                    'Reintentar',
+                    icono: Icons.refresh_rounded,
+                    chico: true,
+                    ancho: false,
+                    variante: VarianteBoton.secundario,
+                    onTap: onReintentar,
                   ),
+                ],
               ],
             ),
           ),
@@ -240,7 +193,7 @@ class _Escribiendo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = context.c;
     return Align(
       alignment: Alignment.centerLeft,
       child: Semantics(
@@ -248,7 +201,7 @@ class _Escribiendo extends StatelessWidget {
         label: 'El asistente está escribiendo',
         excludeSemantics: true,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -256,15 +209,13 @@ class _Escribiendo extends StatelessWidget {
                 dimension: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: theme.colorScheme.tertiary,
+                  color: c.marca,
                 ),
               ),
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: 8),
               Text(
                 'Escribiendo…',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 15, color: c.texto2),
               ),
             ],
           ),

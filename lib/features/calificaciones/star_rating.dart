@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/tema.dart';
+
 /// Estrellas de solo lectura con lectura accesible del valor.
 class StarRating extends StatelessWidget {
   const StarRating({super.key, required this.value, this.size = 18});
@@ -9,7 +11,8 @@ class StarRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.secondary;
+    // Ámbar de los íconos pastel: se ve igual sobre claro y oscuro.
+    const color = Pastel.ambar;
     return Semantics(
       label: '${value.toStringAsFixed(1).replaceAll('.', ',')} de 5 estrellas',
       excludeSemantics: true,

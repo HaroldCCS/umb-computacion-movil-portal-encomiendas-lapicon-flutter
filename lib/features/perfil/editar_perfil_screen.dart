@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/widgets/brand.dart';
-import '../../core/widgets/feedback_views.dart';
+import '../../core/widgets/pantalla.dart';
+import '../../core/widgets/toast.dart';
 import '../../providers.dart';
 import 'widgets/perfil_form.dart';
 
@@ -15,27 +15,26 @@ class EditarPerfilScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final perfil = session.perfil;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Editar perfil')),
-      body: perfil == null
-          ? const SizedBox.shrink()
-          : FormPage(
-              children: [
-                PerfilForm(
-                  uid: perfil.uid,
-                  email: session.email,
-                  inicial: perfil,
-                  submitLabel: 'Guardar cambios',
-                  // Si falla, PerfilForm muestra el error junto al botón.
-                  onSubmit: (datos) async {
-                    await session.actualizarPerfil(datos);
-                    if (!context.mounted) return;
-                    showAppSnackBar(context, 'Perfil actualizado');
-                    Navigator.of(context).maybePop();
-                  },
-                ),
-              ],
-            ),
+    return Pantalla(
+      titulo: 'Editar perfil',
+      textoAtras: 'Perfil',
+      hijos: perfil == null
+          ? const []
+          : [
+              PerfilForm(
+                uid: perfil.uid,
+                email: session.email,
+                inicial: perfil,
+                submitLabel: 'Guardar cambios',
+                // Si falla, PerfilForm muestra el error junto al botón.
+                onSubmit: (datos) async {
+                  await session.actualizarPerfil(datos);
+                  if (!context.mounted) return;
+                  mostrarToast(context, 'Perfil actualizado');
+                  Navigator.of(context).maybePop();
+                },
+              ),
+            ],
     );
   }
 }

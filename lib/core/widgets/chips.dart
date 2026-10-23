@@ -107,3 +107,79 @@ class Chips<T> extends StatelessWidget {
     );
   }
 }
+
+/// Chips de selección múltiple (p. ej. sugerencias al calificar): las
+/// elegidas en negro con check, las demás con borde.
+class ChipsMultiples extends StatelessWidget {
+  const ChipsMultiples({
+    super.key,
+    required this.opciones,
+    required this.seleccionadas,
+    required this.onCambio,
+  });
+
+  final List<String> opciones;
+  final Set<String> seleccionadas;
+
+  /// Recibe la opción tocada (la pantalla la agrega o la quita).
+  final ValueChanged<String> onCambio;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final duracion = Movimiento.duracion(
+      context,
+      const Duration(milliseconds: 200),
+    );
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      children: [
+        for (final o in opciones)
+          Semantics(
+            button: true,
+            selected: seleccionadas.contains(o),
+            label: o,
+            onTap: () => onCambio(o),
+            excludeSemantics: true,
+            child: Presionable(
+              escala: 0.95,
+              onTap: () => onCambio(o),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: AnimatedContainer(
+                  duration: duracion,
+                  constraints: const BoxConstraints(minHeight: 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: seleccionadas.contains(o) ? c.texto : c.superficie,
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: seleccionadas.contains(o) ? c.texto : c.separador,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (seleccionadas.contains(o)) ...[
+                        Icon(Icons.check_rounded, size: 16, color: c.fondo),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        o,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: seleccionadas.contains(o) ? c.fondo : c.texto2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
