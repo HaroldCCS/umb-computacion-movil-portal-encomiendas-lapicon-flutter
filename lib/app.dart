@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/router/app_router.dart';
-import 'core/theme/app_theme.dart';
+import 'core/theme/tema.dart';
 import 'core/theme/app_tokens.dart';
 import 'core/widgets/feedback_views.dart';
 import 'providers.dart';
@@ -26,8 +26,8 @@ class LapticonApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Lapticon',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: construirTema(Brightness.light),
+      darkTheme: construirTema(Brightness.dark),
       themeMode: ThemeMode.system,
       routerConfig: router,
       locale: const Locale('es'),
