@@ -4,7 +4,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-GOOGLE_SERVICES="../referencias/google-services.json"
+# Por defecto, el del repo de documentación (este repo se clona dentro de esa carpeta).
+GOOGLE_SERVICES="${GOOGLE_SERVICES:-../referencias/google-services.json}"
 APP_ID="com.lapticon.app"   # debe coincidir con un cliente del google-services.json
 
 echo "==> Verificando Flutter"

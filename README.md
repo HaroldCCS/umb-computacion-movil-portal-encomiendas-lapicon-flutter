@@ -3,13 +3,24 @@
 Cliente móvil del proyecto Lapticon (Computación Móvil, 2.º corte). Consume el backend
 `https://lapticon-backend.onrender.com` con el idToken de Firebase.
 
+**[⬇️ Descargar el APK (última versión)](https://github.com/HaroldCCS/umb-computacion-movil-portal-encomiendas-lapicon-flutter/releases/latest/download/lapticon.apk)** — se compila solo con cada
+push a `main` (`.github/workflows/compilar-apps.yml`).
+
+Documentación (contrato de la API, arquitectura, sistema de diseño, bitácora) en el
+[repositorio de documentación](https://github.com/HaroldCCS/umb-computacion-movil-portal-encomiendas-lapicon); las referencias `docs/0X` del código apuntan allá. La versión web (PWA) está en
+[su propio repositorio](https://github.com/HaroldCCS/umb-computacion-movil-portal-encomiendas-lapicon-pwa).
+
+**Organización local:** este repositorio se clona dentro de la carpeta del repo de documentación, como `lapticon_app/`
+(el de documentación lo ignora). Así `setup.sh` encuentra `../referencias/google-services.json`; si lo tienes en otra
+parte: `GOOGLE_SERVICES=/ruta/google-services.json bash setup.sh`.
+
 **Estado:** prácticas 1 a 6 implementadas (pendiente probar en dispositivo y confirmar el contrato real de la API).
 
 ## Requisitos
 
 - Flutter estable **3.32 o superior** (probado contra el código fuente de Flutter 3.47 / Dart 3.13).
 - Android Studio con un emulador Android, o un teléfono Android en modo depuración.
-- La carpeta `../referencias/` con el `google-services.json` del curso.
+- El `google-services.json` del curso (en `../referencias/` del repo de documentación; no se sube).
 
 ## Puesta en marcha (una sola vez)
 
@@ -96,5 +107,5 @@ flutter test
 | `CONFIGURATION_NOT_FOUND` / error de API key al iniciar sesión | El `applicationId` no coincide: debe ser `com.lapticon.app` |
 | La primera carga tarda mucho | Normal: el backend gratuito de Render "despierta" en 30–60 s |
 
-Diseño: sistema v2 en `../docs/07-diseno-ux-ui.md` (por qué y cómo se rediseñó: `../docs/08-plan-rediseno-ui.md`).
-Planeación y contrato de la API: `../docs/`.
+Diseño: sistema v2 en [docs/07](https://github.com/HaroldCCS/umb-computacion-movil-portal-encomiendas-lapicon/blob/main/docs/07-diseno-ux-ui.md) (por qué y cómo se rediseñó: [docs/08](https://github.com/HaroldCCS/umb-computacion-movil-portal-encomiendas-lapicon/blob/main/docs/08-plan-rediseno-ui.md)).
+Planeación y contrato de la API: [docs/](https://github.com/HaroldCCS/umb-computacion-movil-portal-encomiendas-lapicon/tree/main/docs).
