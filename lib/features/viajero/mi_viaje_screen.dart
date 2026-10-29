@@ -10,15 +10,19 @@ import '../../core/widgets/aviso.dart';
 import '../../core/widgets/boton.dart';
 import '../../core/widgets/esqueleto.dart';
 import '../../core/widgets/grupo.dart';
+import '../../core/widgets/hoja.dart';
 import '../../core/widgets/insignia.dart';
 import '../../core/widgets/monto.dart';
 import '../../core/widgets/pantalla.dart';
 import '../../core/widgets/tarjeta_accion.dart';
 import '../../core/widgets/tarjeta_hero.dart';
+import '../../core/widgets/toast.dart';
 import '../../data/models/encomienda.dart';
+import '../../data/models/estado.dart';
 import '../../data/models/rol.dart';
 import '../../data/models/viaje.dart';
 import '../calificaciones/calificaciones_providers.dart';
+import '../../providers.dart';
 import '../home/home_providers.dart';
 import 'viajero_logic.dart';
 import 'viajero_providers.dart';
@@ -154,8 +158,109 @@ class MiViajeScreen extends ConsumerWidget {
           ),
         ),
       _MisEntregas(entregas: entregas),
+      _CancelarViaje(
+        viaje: viaje,
+        pendientes: entregas.hasValue ? pendientes : null,
+      ),
       const _Historial(),
     ];
+  }
+}
+
+/// Cancelar el viaje (`PATCH /api/viajes/{id}/estado`). Irreversible: se
+/// confirma escribiendo CANCELAR. Con encomiendas por entregar no deja
+/// seguir: el servidor no lo revisa. [pendientes] es `null` mientras cargan.
+class _CancelarViaje extends ConsumerStatefulWidget {
+  const _CancelarViaje({required this.viaje, required this.pendientes});
+
+  final Viaje viaje;
+  final List<Encomienda>? pendientes;
+
+  @override
+  ConsumerState<_CancelarViaje> createState() => _CancelarViajeState();
+}
+
+class _CancelarViajeState extends ConsumerState<_CancelarViaje> {
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _cancelar() async {
+    final pendientes = widget.pendientes;
+    if (pendientes == null) return;
+    if (pendientes.isNotEmpty) {
+      final ver = await confirmarConHoja(
+        context,
+        titulo: 'Aún llevas encomiendas',
+        mensaje: pendientes.length == 1
+            ? 'Tienes una encomienda por entregar. Entrégala o habla con el '
+                  'remitente antes de cancelar el viaje.'
+            : 'Tienes ${pendientes.length} encomiendas por entregar. '
+                  'Entrégalas o habla con los remitentes antes de cancelar '
+                  'el viaje.',
+        confirmarTexto: 'Ver por entregar',
+        cancelarTexto: 'Entendido',
+      );
+      if (ver && mounted) {
+        abrirEncomiendaViajero(
+          context,
+          pendientes.first,
+          accion: AccionPendiente.entregar,
+        );
+      }
+      return;
+    }
+    final v = widget.viaje;
+    final ok = await confirmarConHoja(
+      context,
+      titulo: '¿Cancelar tu viaje?',
+      mensaje:
+          'Tu viaje ${v.ciudadOrigen} → ${v.ciudadDestino} deja de aparecer '
+          'a los remitentes y podrás registrar otro. Esta acción no se puede '
+          'deshacer.',
+      confirmarTexto: 'Sí, cancelarlo',
+      cancelarTexto: 'No, mantenerlo',
+      destructivo: true,
+      palabra: 'CANCELAR',
+    );
+    if (!ok || !mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(viajeRepositoryProvider)
+          .cambiarEstado(v.id, EstadoViaje.cancelado);
+      refrescarViajero(ref);
+      if (!mounted) return;
+      mostrarToast(context, 'Viaje cancelado. Puedes registrar otro.');
+      context.push(ViajeroRoutes.registrarViaje);
+    } on AppException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_error != null) ...[
+          Aviso(_error!, tipo: TipoAviso.error),
+          const SizedBox(height: 12),
+        ],
+        Boton(
+          'Cancelar viaje',
+          icono: Icons.cancel_outlined,
+          variante: VarianteBoton.peligro,
+          textoCargando: 'Cancelando…',
+          cargando: _loading,
+          onTap: widget.pendientes == null ? null : _cancelar,
+        ),
+      ],
+    );
   }
 }
 

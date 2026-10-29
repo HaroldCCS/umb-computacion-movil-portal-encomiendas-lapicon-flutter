@@ -38,6 +38,8 @@ class Insignia extends StatelessWidget {
     final (icono, tipo) = switch (estado) {
       EstadoViaje.disponible => (Icons.flight_takeoff, TipoInsignia.info),
       EstadoViaje.completado => (Icons.flight_land, TipoInsignia.neutra),
+      EstadoViaje.cancelado => (Icons.cancel_outlined, TipoInsignia.peligro),
+      EstadoViaje.contactado => (Icons.chat_bubble_outline, TipoInsignia.info),
       EstadoViaje.desconocido => (Icons.help_outline, TipoInsignia.neutra),
     };
     return Insignia(

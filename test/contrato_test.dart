@@ -144,6 +144,28 @@ void main() {
 
   // Respuestas reales del backend (22-oct-2026, referencias/respuestas/).
   group('Respuestas reales', () {
+    test('PATCH /api/viajes/:id/estado devuelve el viaje en "viaje"', () {
+      // referencias/respuestas/fase0_patch_viaje_cancelado.json (28-oct).
+      final v = Viaje.fromJson({
+        'message': 'Estado actualizado',
+        'viaje': {
+          '_id': '6ae25c6a411da1034525b232',
+          'uid': 'uidV',
+          'numeroVuelo': 'A777',
+          'ciudadOrigen': 'Bogota',
+          'ciudadDestino': 'Medellin',
+          'fechaViaje': '2026-10-30T00:00:00.000Z',
+          'estado': 'cancelado',
+          'createdAt': '2026-10-28T20:34:50.718Z',
+          '__v': 0,
+        },
+      });
+      expect(v.id, '6ae25c6a411da1034525b232');
+      expect(v.estado, EstadoViaje.cancelado);
+      expect(EstadoViaje.parse('Contactado'), EstadoViaje.contactado);
+      expect(EstadoViaje.parse('pausado'), EstadoViaje.desconocido);
+    });
+
     test('GET /api/users/:uid viene envuelto en "user" y sin rol', () {
       final u = Usuario.fromJson({
         'user': {

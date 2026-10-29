@@ -32,9 +32,13 @@ enum EstadoEncomienda {
 }
 
 /// Estados de un viaje.
+/// `contactado` solo aparece en el Swagger oficial (el PATCH lo rechaza); se
+/// muestra si llega.
 enum EstadoViaje {
   disponible('Activo'),
   completado('Completado'),
+  cancelado('Cancelado'),
+  contactado('Contactado'),
   desconocido('Sin estado');
 
   const EstadoViaje(this.etiqueta);

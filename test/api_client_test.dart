@@ -32,6 +32,15 @@ void main() {
     );
   }
 
+  test('PATCH manda el cuerpo en JSON (cancelar viaje)', () async {
+    final api = clientWith(
+      (req, _) => http.Response(jsonEncode({'message': 'ok'}), 200),
+    );
+    await api.patch('/api/viajes/v1/estado', body: {'estado': 'cancelado'});
+    expect(requests.single.method, 'PATCH');
+    expect(jsonDecode(requests.single.body), {'estado': 'cancelado'});
+  });
+
   test('envía el Bearer token y decodifica JSON', () async {
     final api = clientWith(
       (req, _) => http.Response(jsonEncode({'ok': true}), 200),

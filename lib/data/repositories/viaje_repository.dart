@@ -1,5 +1,6 @@
 import '../../core/network/api_client.dart';
 import '../../core/network/app_exception.dart';
+import '../models/estado.dart';
 import '../models/json_utils.dart';
 import '../models/viaje.dart';
 
@@ -32,6 +33,19 @@ class ViajeRepository {
   /// Viajeros que salen de [ciudad] (`GET /api/viajes/buscar?ciudad=`).
   Future<List<Viaje>> buscarPorOrigen(String ciudad) async =>
       _lista(await _api.get('/api/viajes/buscar', query: {'ciudad': ciudad}));
+
+  /// Cancela o cierra mi viaje (`PATCH /api/viajes/{id}/estado`). Después se
+  /// puede registrar otro. 404 si no es mío. El servidor no revisa si lleva
+  /// encomiendas: eso lo hace la pantalla.
+  Future<Viaje?> cambiarEstado(String id, EstadoViaje estado) async {
+    assert(estado == EstadoViaje.cancelado || estado == EstadoViaje.completado);
+    final json = await _api.patch(
+      '/api/viajes/$id/estado',
+      body: {'estado': estado.name},
+    );
+    final viaje = Viaje.fromJson(json);
+    return viaje.id.isEmpty ? null : viaje;
+  }
 
   /// `POST /api/viajes`. Responde 400 si ya hay un viaje activo.
   Future<Viaje> crear({

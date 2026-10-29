@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:lapticon_app/core/router/routes.dart';
 import 'package:lapticon_app/core/theme/tema.dart';
 import 'package:lapticon_app/core/widgets/accion_resaltada.dart';
+import 'package:lapticon_app/core/widgets/boton.dart';
 import 'package:lapticon_app/data/local/prefs.dart';
 import 'package:lapticon_app/data/models/encomienda.dart';
 import 'package:lapticon_app/data/models/estado.dart';
 import 'package:lapticon_app/data/models/usuario.dart';
 import 'package:lapticon_app/data/models/viaje.dart';
+import 'package:lapticon_app/data/repositories/viaje_repository.dart';
 import 'package:lapticon_app/features/home/home_providers.dart';
 import 'package:lapticon_app/features/remitente/envios_logic.dart';
 import 'package:lapticon_app/features/remitente/inicio_remitente_screen.dart';
@@ -47,6 +49,20 @@ Encomienda _e(
   viajeroNombre: viajero == null ? null : 'Andrés',
   remitenteNombre: 'Laura',
 );
+
+/// Repositorio de viajes que solo recuerda el cambio de estado.
+class _ViajesFalsos implements ViajeRepository {
+  final cambios = <(String, EstadoViaje)>[];
+
+  @override
+  Future<Viaje?> cambiarEstado(String id, EstadoViaje estado) async {
+    cambios.add((id, estado));
+    return null;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
 
 /// Sesión sin Firebase: solo lo que leen estas pantallas.
 class _SesionFalsa extends ChangeNotifier implements SessionController {
@@ -180,6 +196,7 @@ void main() {
           RemitenteRoutes.detalle,
           RemitenteRoutes.viajeros,
           ViajeroRoutes.encomienda,
+          ViajeroRoutes.registrarViaje,
           Routes.asistente,
         ])
           GoRoute(
@@ -332,6 +349,88 @@ void main() {
         find.text('Ruta /viajero/encomienda?accion=entregar · 7'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('cancelar viaje pide escribir CANCELAR y lleva a registrar', (
+      tester,
+    ) async {
+      final repo = _ViajesFalsos();
+      await montar(tester, const MiViajeScreen(), [
+        ...overrides(const []),
+        viajeRepositoryProvider.overrideWithValue(repo),
+      ]);
+      await tester.scrollUntilVisible(
+        find.text('Cancelar viaje'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Cancelar viaje'));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Cancelar tu viaje?'), findsOneWidget);
+      expect(find.textContaining('Bogotá → Miami deja de aparecer'), findsOne);
+      Boton confirmar() =>
+          tester.widget<Boton>(find.widgetWithText(Boton, 'Sí, cancelarlo'));
+      expect(confirmar().onTap, isNull);
+      await tester.enterText(find.byType(TextField), 'cancelar');
+      await tester.pump();
+      await tester.tap(find.text('Sí, cancelarlo'));
+      await tester.pumpAndSettle();
+
+      expect(repo.cambios, [('v', EstadoViaje.cancelado)]);
+      expect(find.text('Ruta /viajero/registrar-viaje · null'), findsOneWidget);
+    });
+
+    testWidgets('con encomiendas por entregar no deja cancelar', (
+      tester,
+    ) async {
+      final repo = _ViajesFalsos();
+      await montar(tester, const MiViajeScreen(), [
+        ...overrides([_e('7', EstadoEncomienda.tomada)]),
+        viajeRepositoryProvider.overrideWithValue(repo),
+      ]);
+      await tester.scrollUntilVisible(
+        find.text('Cancelar viaje'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Cancelar viaje'));
+      await tester.pumpAndSettle();
+      expect(find.text('Aún llevas encomiendas'), findsOneWidget);
+      expect(
+        find.textContaining('Tienes una encomienda por entregar.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Ver por entregar'));
+      await tester.pumpAndSettle();
+      expect(repo.cambios, isEmpty);
+      expect(
+        find.text('Ruta /viajero/encomienda?accion=entregar · 7'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('el historial muestra un viaje cancelado con texto e ícono', (
+      tester,
+    ) async {
+      final cancelado = Viaje(
+        id: 'c',
+        numeroVuelo: 'LA2401',
+        ciudadOrigen: 'Cali',
+        ciudadDestino: 'Lima',
+        fechaViaje: DateTime(2026, 12, 10),
+        estado: EstadoViaje.parse('cancelado'),
+      );
+      await montar(tester, const MiViajeScreen(), [
+        miViajeProvider.overrideWith((ref) async => null),
+        historialViajesProvider.overrideWith((ref) async => [cancelado]),
+      ]);
+      await tester.scrollUntilVisible(
+        find.text('Cancelado'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Cancelado'), findsOneWidget);
+      expect(find.byIcon(Icons.cancel_outlined), findsOneWidget);
     });
 
     testWidgets('sin viaje invita a registrar uno', (tester) async {
