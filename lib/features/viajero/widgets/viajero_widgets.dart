@@ -9,6 +9,7 @@ import '../../../core/widgets/insignia.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/route_ticket.dart';
 import '../../../data/models/encomienda.dart';
+import '../../../data/models/rol.dart';
 import '../../../providers.dart';
 
 /// Tarjeta-pase de una encomienda vista por el viajero: el valor que le
@@ -43,7 +44,8 @@ class EncomiendaTicket extends StatelessWidget {
               value: Fmt.fecha(e.fechaVencimiento, corta: true),
             ),
         ],
-        trailing: Insignia.encomienda(e.estado),
+        // Las tomadas que ve el viajero en sus listas son suyas.
+        trailing: Insignia.encomienda(e.estado, rol: Rol.viajero),
       ),
     );
   }

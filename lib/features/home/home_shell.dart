@@ -111,6 +111,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ).porCalificar.length,
           _ => 0,
         };
+        final nuevas = nuevasTomadasDe(ref).length;
+        final etiquetas = [
+          if (nuevas > 0) '$nuevas ${nuevas == 1 ? 'nueva' : 'nuevas'}',
+          if (porCalificar > 0) '$porCalificar por calificar',
+        ];
         return [
           const PestanaItem(
             Icons.home_outlined,
@@ -121,8 +126,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             Icons.inventory_2_outlined,
             'Envíos',
             iconoActivo: Icons.inventory_2,
-            contador: porCalificar,
-            etiquetaContador: '$porCalificar por calificar',
+            contador: nuevas + porCalificar,
+            etiquetaContador: etiquetas.join(' · '),
           ),
           chats,
           perfil,

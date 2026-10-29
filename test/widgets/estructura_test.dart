@@ -45,13 +45,13 @@ Widget _hero(Rol rol) => TarjetaHero(
   rol: rol,
   titulo: 'Tus envíos activos',
   principal: const Text('3'),
-  nota: 'Dos ya van en camino.',
+  nota: 'Dos ya tienen viajero.',
   insignia: const EtiquetaVidrio('Vuelo verificado', icono: Icons.verified),
   avance: 0.4,
   etiquetaAvance: 'Entregadas',
   subTarjetas: const [
     SubTarjetaVidrio(
-      etiqueta: 'En camino',
+      etiqueta: 'Tomadas',
       icono: Icons.luggage,
       valor: Text('2'),
     ),

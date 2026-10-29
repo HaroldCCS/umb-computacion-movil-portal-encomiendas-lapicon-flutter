@@ -206,6 +206,20 @@ class _EncomiendaViajeroScreenState
         ),
       ),
       hijos: [
+        // Fijo, no un toast: que no quede duda de que la tomó y de qué sigue
+        // (docs/11 §2G).
+        if (mia && _e.estado == EstadoEncomienda.tomada)
+          Aviso(
+            '1. Escríbele a ${_e.remitenteNombre ?? 'quien la publicó'} para '
+            'recibir el paquete.\n'
+            '2. Llévalo en tu viaje${switch (ref.watch(miViajeProvider).value?.numeroVuelo) {
+              final v? when v.isNotEmpty => ' $v',
+              _ => '',
+            }}.\n'
+            '3. Al entregarlo, márcala como entregada.',
+            titulo: 'Tú llevas esta encomienda',
+            tipo: TipoAviso.exito,
+          ),
         RouteTicket(
           origen: _e.ciudadOrigen,
           destino: _e.ciudadDestino,
@@ -217,7 +231,10 @@ class _EncomiendaViajeroScreenState
                 value: Fmt.fecha(_e.fechaVencimiento),
               ),
           ],
-          trailing: Insignia.encomienda(_e.estado),
+          trailing: Insignia.encomienda(
+            _e.estado,
+            rol: mia ? Rol.viajero : Rol.remitente,
+          ),
         ),
         Grupo(
           titulo: 'Lo que te pagan',
@@ -294,20 +311,21 @@ class _EncomiendaViajeroScreenState
         ];
       case EstadoEncomienda.tomada:
         if (!mia) return [info('Otra persona ya tomó esta encomienda.')];
+        // Lo siguiente es coordinar con el remitente; entregar es lo último.
         return [
           Boton(
-            'Marcar como entregada',
-            icono: Icons.check_circle_outline,
-            textoCargando: 'Guardando…',
-            cargando: _loading,
-            onTap: _marcarEntregada,
+            'Escribir al remitente',
+            icono: Icons.chat_bubble_outline,
+            onTap: sinRemitente || _loading ? null : _abrirChat,
           ),
           const SizedBox(height: 8),
           Boton(
-            'Abrir chat con el remitente',
-            icono: Icons.chat_bubble_outline,
+            'Marcar como entregada',
+            icono: Icons.check_circle_outline,
             variante: VarianteBoton.secundario,
-            onTap: sinRemitente || _loading ? null : _abrirChat,
+            textoCargando: 'Guardando…',
+            cargando: _loading,
+            onTap: _marcarEntregada,
           ),
         ];
       case EstadoEncomienda.entregada || EstadoEncomienda.recibida:

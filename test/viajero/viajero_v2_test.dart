@@ -445,9 +445,24 @@ void main() {
         ),
       );
       expect(find.textContaining('escriba primero'), findsNothing);
-      expect(find.text('Laura'), findsOneWidget);
-      final chat = find.widgetWithText(Boton, 'Abrir chat con el remitente');
+      // Queda claro que la lleva él y qué sigue, sin depender del toast.
+      expect(find.text('Tú llevas esta encomienda'), findsOneWidget);
+      expect(
+        find.textContaining('1. Escríbele a Laura para recibir el paquete.'),
+        findsOneWidget,
+      );
+      expect(find.text('La llevas tú'), findsOneWidget);
+      final chat = find.widgetWithText(Boton, 'Escribir al remitente');
       expect(tester.widget<Boton>(chat).onTap, isNotNull);
+      // Entregar es lo último: va como botón secundario.
+      final entregar = find.widgetWithText(Boton, 'Marcar como entregada');
+      expect(tester.widget<Boton>(entregar).variante, VarianteBoton.secundario);
+      await tester.scrollUntilVisible(
+        find.text('Laura'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Laura'), findsOneWidget);
     });
 
     testWidgets('el error de una acción va junto a ella', (tester) async {
@@ -477,7 +492,7 @@ void main() {
           accion: AccionPendiente.entregar,
         ),
       );
-      expect(find.textContaining('márcala como entregada'), findsOneWidget);
+      expect(find.textContaining('Cuando la dejes en destino'), findsOneWidget);
       expect(find.text('Marcar como entregada'), findsOneWidget);
     });
   });

@@ -13,6 +13,7 @@ import '../../core/widgets/insignia.dart';
 import '../../core/widgets/pantalla.dart';
 import '../../core/widgets/route_ticket.dart';
 import '../../data/models/estado.dart';
+import '../../data/models/rol.dart';
 import '../../data/repositories/chat_repository.dart';
 import '../../providers.dart';
 import 'chat_providers.dart';
@@ -158,7 +159,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 destino: encomienda.ciudadDestino,
                 compact: true,
                 accent: c.marca,
-                trailing: Insignia.encomienda(encomienda.estado),
+                trailing: Insignia.encomienda(
+                  encomienda.estado,
+                  rol: encomienda.viajeroUid == miUid
+                      ? Rol.viajero
+                      : Rol.remitente,
+                ),
               ),
             ),
           Expanded(

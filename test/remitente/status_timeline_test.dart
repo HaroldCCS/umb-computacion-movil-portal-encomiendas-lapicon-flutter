@@ -24,7 +24,10 @@ void main() {
     expect(find.text('Publicada'), findsOneWidget);
     expect(find.text('Calificada'), findsOneWidget);
     expect(find.bySemanticsLabel('Publicada: completado'), findsOneWidget);
-    expect(find.bySemanticsLabel('Tomada: paso actual'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Tomada por un viajero: paso actual'),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Entregada: pendiente'), findsOneWidget);
     await expectLater(tester, meetsGuideline(textContrastGuideline));
     handle.dispose();

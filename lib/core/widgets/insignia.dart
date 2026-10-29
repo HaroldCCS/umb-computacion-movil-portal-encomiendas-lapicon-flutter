@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/estado.dart';
+import '../../data/models/rol.dart';
 import '../theme/tema.dart';
 
 enum TipoInsignia { exito, atencion, peligro, info, neutra }
@@ -16,21 +17,32 @@ class Insignia extends StatelessWidget {
     this.semantica,
   });
 
-  factory Insignia.encomienda(EstadoEncomienda estado, {Key? key}) {
+  /// [rol] = quién mira: con `tomada`, el remitente ve "Tomada" (persona que
+  /// la aceptó) y el viajero que la lleva, "La llevas tú" (maleta).
+  factory Insignia.encomienda(
+    EstadoEncomienda estado, {
+    Key? key,
+    Rol rol = Rol.remitente,
+  }) {
     final (icono, tipo) = switch (estado) {
       EstadoEncomienda.disponible => (Icons.schedule, TipoInsignia.info),
+      EstadoEncomienda.tomada when rol == Rol.remitente => (
+        Icons.how_to_reg_outlined,
+        TipoInsignia.atencion,
+      ),
       EstadoEncomienda.tomada => (Icons.luggage, TipoInsignia.atencion),
       EstadoEncomienda.entregada => (Icons.check_circle, TipoInsignia.exito),
       EstadoEncomienda.recibida => (Icons.done_all, TipoInsignia.exito),
       EstadoEncomienda.vencida => (Icons.event_busy, TipoInsignia.neutra),
       EstadoEncomienda.desconocido => (Icons.help_outline, TipoInsignia.neutra),
     };
+    final texto = estado.etiquetaPara(rol);
     return Insignia(
-      estado.etiqueta,
+      texto,
       key: key,
       icono: icono,
       tipo: tipo,
-      semantica: 'Estado: ${estado.etiqueta}',
+      semantica: 'Estado: $texto',
     );
   }
 

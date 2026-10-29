@@ -24,6 +24,7 @@ import 'envios_logic.dart';
 import 'envios_screen.dart';
 import 'remitente_providers.dart';
 import 'remitente_routes.dart';
+import 'widgets/aviso_tomada.dart';
 
 /// Pestaña "Inicio" del remitente (docs/08 §8.4): tarjeta principal con los
 /// envíos activos, avisos que llevan directo a la acción pendiente y
@@ -39,6 +40,7 @@ class InicioRemitenteScreen extends ConsumerWidget {
     final c = context.c;
     final session = ref.watch(sessionProvider);
     final envios = ref.watch(misEncomiendasProvider);
+    escucharEstadosVistos(ref);
 
     Future<void> refrescar() async {
       ref.invalidate(misEncomiendasProvider);
@@ -123,7 +125,10 @@ class InicioRemitenteScreen extends ConsumerWidget {
     void calificar(Encomienda e) =>
         abrirDetalleEnvio(context, ref, e, accion: AccionPendiente.calificar);
 
+    final nuevas = nuevasTomadasDe(ref);
     return [
+      // Arriba de todo: un viajero tomó una encomienda (docs/11 §2G).
+      if (nuevas.isNotEmpty) const AvisosTomadas(),
       // Sin ningún envío, la tarjeta en cero no aporta: basta la invitación.
       if (lista.isNotEmpty)
         TarjetaHero(
@@ -135,9 +140,9 @@ class InicioRemitenteScreen extends ConsumerWidget {
           onTap: () => irAEnvios(PestanaEnvios.activas),
           subTarjetas: [
             SubTarjetaVidrio(
-              etiqueta: 'En camino',
-              icono: Icons.luggage,
-              valor: Text('${r.enCamino}'),
+              etiqueta: 'Tomadas',
+              icono: Icons.how_to_reg_outlined,
+              valor: Text('${r.tomadas}'),
             ),
             SubTarjetaVidrio(
               etiqueta: 'Disponibles',

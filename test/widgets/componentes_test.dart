@@ -18,6 +18,7 @@ import 'package:lapticon_app/core/widgets/progreso.dart';
 import 'package:lapticon_app/core/widgets/tarjeta.dart';
 import 'package:lapticon_app/core/widgets/toast.dart';
 import 'package:lapticon_app/data/models/estado.dart';
+import 'package:lapticon_app/data/models/rol.dart';
 
 /// Pruebas de los componentes base del sistema v2 (docs/08 §8.3).
 Widget _app(
@@ -301,9 +302,17 @@ void main() {
   ) async {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(_app(Insignia.encomienda(EstadoEncomienda.tomada)));
-    expect(find.text('En camino'), findsOneWidget);
+    // El remitente ve "Tomada" con una persona (docs/11 §2G).
+    expect(find.text('Tomada'), findsOneWidget);
+    expect(find.byIcon(Icons.how_to_reg_outlined), findsOneWidget);
+    expect(find.bySemanticsLabel('Estado: Tomada'), findsOneWidget);
+    // El viajero que la lleva: "La llevas tú" con la maleta.
+    await tester.pumpWidget(
+      _app(Insignia.encomienda(EstadoEncomienda.tomada, rol: Rol.viajero)),
+    );
+    expect(find.text('La llevas tú'), findsOneWidget);
     expect(find.byIcon(Icons.luggage), findsOneWidget);
-    expect(find.bySemanticsLabel('Estado: En camino'), findsOneWidget);
+    expect(EstadoEncomienda.entregada.etiquetaPara(Rol.viajero), 'Entregada');
     handle.dispose();
   });
 

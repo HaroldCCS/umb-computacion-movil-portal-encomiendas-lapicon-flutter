@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,8 +65,24 @@ class _ViajesFalsos implements ViajeRepository {
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
+class _UsuarioFalso implements User {
+  @override
+  String get uid => 'r1';
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
 /// Sesión sin Firebase: solo lo que leen estas pantallas.
 class _SesionFalsa extends ChangeNotifier implements SessionController {
+  _SesionFalsa({this.conUsuario = false});
+
+  /// Con usuario se activan los avisos de "te la tomaron" (necesitan Prefs).
+  final bool conUsuario;
+
+  @override
+  User? get user => conUsuario ? _UsuarioFalso() : null;
+
   @override
   Usuario? get perfil => const Usuario(
     uid: 'r1',
@@ -81,6 +98,33 @@ class _SesionFalsa extends ChangeNotifier implements SessionController {
 
 void main() {
   group('Lógica', () {
+    test('nuevas tomadas: avisa una vez y solo de lo nuevo', () {
+      final a = _e('a', EstadoEncomienda.disponible, viajero: null);
+      final tomadaA = _e('a', EstadoEncomienda.tomada);
+      final b = _e('b', EstadoEncomienda.tomada);
+      // Primera vez sin mapa: no avisa nada de golpe y guarda todo como visto.
+      expect(nuevasTomadas([a, b], null), isEmpty);
+      final base = actualizarVistos([a, b], null);
+      expect(base, {'a': 'disponible', 'b': 'tomada'});
+      // disponible → tomada: avisa; b ya se había visto tomada: no.
+      expect(nuevasTomadas([tomadaA, b], base).map((e) => e.id), ['a']);
+      // Mientras no la vea, sigue pendiente aunque se recargue.
+      final recargado = actualizarVistos([tomadaA, b], base);
+      expect(recargado, base);
+      // Ya vista: no avisa más.
+      expect(
+        nuevasTomadas([tomadaA, b], {...recargado, 'a': 'tomada'}),
+        isEmpty,
+      );
+      // Publicada desde otro teléfono y ya tomada: también es nueva.
+      expect(
+        nuevasTomadas([
+          _e('c', EstadoEncomienda.tomada),
+        ], base).map((e) => e.id),
+        ['c'],
+      );
+    });
+
     test('ResumenEnvios cuenta y ubica lo que falta por calificar', () {
       final r = ResumenEnvios.de(
         [
@@ -94,12 +138,12 @@ void main() {
         {'4'},
       );
       expect(r.activas, 2);
-      expect(r.enCamino, 1);
+      expect(r.tomadas, 1);
       expect(r.disponibles, 1);
       expect(r.entregadas, 3);
       // La 4 ya se calificó y la 5 no tiene viajero conocido.
       expect(r.porCalificar.map((e) => e.id), ['3']);
-      expect(r.nota, '1 va en camino · 1 espera viajero.');
+      expect(r.nota, '1 tomada por un viajero · 1 espera viajero.');
     });
 
     test('ResumenEnvios sin activas invita a publicar', () {
@@ -183,8 +227,9 @@ void main() {
   Future<ProviderContainer> montar(
     WidgetTester tester,
     Widget pantalla,
-    List overrides,
-  ) async {
+    List overrides, {
+    SessionController? sesion,
+  }) async {
     tester.view
       ..physicalSize = const Size(1080, 2600)
       ..devicePixelRatio = 2.6;
@@ -212,7 +257,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          sessionProvider.overrideWithValue(_SesionFalsa()),
+          sessionProvider.overrideWithValue(sesion ?? _SesionFalsa()),
           ...overrides.cast(),
         ],
         child: MaterialApp.router(
@@ -242,7 +287,12 @@ void main() {
       expect(find.text('Hola, Laura'), findsOneWidget);
       expect(find.text('Tus envíos activos'), findsOneWidget);
       expect(find.text('2'), findsOneWidget); // activas
-      expect(find.text('1 va en camino · 1 espera viajero.'), findsOneWidget);
+      expect(
+        find.text('1 tomada por un viajero · 1 espera viajero.'),
+        findsOneWidget,
+      );
+      expect(find.text('TOMADAS'), findsOneWidget);
+      expect(find.text('En camino'), findsNothing);
       expect(
         find.text('Tu encomienda a Lima ya fue entregada'),
         findsOneWidget,
@@ -251,6 +301,52 @@ void main() {
       await expectLater(tester, meetsGuideline(textContrastGuideline));
       await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
       handle.dispose();
+    });
+
+    testWidgets('avisa cuando un viajero tomó una encomienda', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'remitente_estados_vistos_r1': '{"9":"disponible"}',
+      });
+      final prefs = Prefs(await SharedPreferences.getInstance());
+      await montar(
+        tester,
+        const InicioRemitenteScreen(),
+        sesion: _SesionFalsa(conUsuario: true),
+        [
+          prefsProvider.overrideWithValue(prefs),
+          misEncomiendasProvider.overrideWith(
+            (ref) async => [_e('9', EstadoEncomienda.tomada, destino: 'Lima')],
+          ),
+        ],
+      );
+      expect(
+        find.text('¡Andrés tomó tu encomienda Bogotá → Lima!'),
+        findsOneWidget,
+      );
+      expect(find.text('Escribirle'), findsOneWidget);
+      expect(find.text('Ver envío'), findsOneWidget);
+      await tester.tap(find.text('Entendido'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('tomó tu encomienda'), findsNothing);
+      expect(prefs.estadosVistos('r1'), {'9': 'tomada'});
+    });
+
+    testWidgets('la primera vez guarda lo visto sin avisar', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = Prefs(await SharedPreferences.getInstance());
+      await montar(
+        tester,
+        const InicioRemitenteScreen(),
+        sesion: _SesionFalsa(conUsuario: true),
+        [
+          prefsProvider.overrideWithValue(prefs),
+          misEncomiendasProvider.overrideWith(
+            (ref) async => [_e('9', EstadoEncomienda.tomada)],
+          ),
+        ],
+      );
+      expect(find.textContaining('tomó tu encomienda'), findsNothing);
+      expect(prefs.estadosVistos('r1'), {'9': 'tomada'});
     });
 
     testWidgets('el aviso abre el detalle con Calificar resaltado', (

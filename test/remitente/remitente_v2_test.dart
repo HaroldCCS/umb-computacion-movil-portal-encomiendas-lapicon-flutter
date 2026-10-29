@@ -248,6 +248,33 @@ void main() {
       expect(resultados, [true]);
     });
 
+    testWidgets('tomada: quién la lleva va arriba y el estado lo explica', (
+      tester,
+    ) async {
+      await _montar(
+        tester,
+        EncomiendaDetalleScreen(
+          encomienda: _e(EstadoEncomienda.tomada, viajero: 'v1'),
+        ),
+      );
+      expect(find.text('Tomada'), findsOneWidget);
+      // Justo debajo del pase, antes que el estado (docs/11 §2G).
+      final quien = tester.getTopLeft(find.text('QUIÉN LA LLEVA')).dy;
+      final estado = tester.getTopLeft(find.text('ESTADO')).dy;
+      expect(quien, lessThan(estado));
+      expect(find.text('Escribirle'), findsOneWidget);
+      expect(find.text('Quién la llevó'.toUpperCase()), findsNothing);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Andrés aceptó llevarla. Coordinen por chat dónde y cuándo se la '
+          'entregas.',
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('desde un aviso, Calificar se explica en el pie', (
       tester,
     ) async {

@@ -116,9 +116,25 @@ class _ExplorarScreenState extends ConsumerState<ExplorarScreen> {
         ),
       ],
     );
+    // Las que tomé van aparte y arriba, para no confundirlas con las
+    // disponibles (docs/11 §2G).
+    final llevo = porEntregar(ref.watch(misEntregasProvider).value ?? const []);
+    final lasQueLlevo = [
+      if (llevo.isNotEmpty)
+        Semantics(
+          header: true,
+          child: Text('Las que llevas', style: context.t.titleLarge),
+        ),
+      for (final e in llevo)
+        EncomiendaTicket(
+          encomienda: e,
+          onTap: () => abrirEncomiendaViajero(context, e),
+        ),
+    ];
     return switch (lista) {
       AsyncData(:final value) when value.isEmpty => [
         ruta,
+        ...lasQueLlevo,
         const Vacio(
           titulo: 'Aún no hay encomiendas para esta ruta',
           icono: Icons.inbox_outlined,
@@ -127,6 +143,7 @@ class _ExplorarScreenState extends ConsumerState<ExplorarScreen> {
       ],
       AsyncData(:final value) => [
         ruta,
+        ...lasQueLlevo,
         Semantics(
           header: true,
           child: Text(
@@ -143,6 +160,7 @@ class _ExplorarScreenState extends ConsumerState<ExplorarScreen> {
       ],
       AsyncError(:final error) => [
         ruta,
+        ...lasQueLlevo,
         Aviso(
           error is AppException
               ? error.message
@@ -157,7 +175,7 @@ class _ExplorarScreenState extends ConsumerState<ExplorarScreen> {
           ),
         ),
       ],
-      _ => [ruta, const EsqueletoLista(cantidad: 2)],
+      _ => [ruta, ...lasQueLlevo, const EsqueletoLista(cantidad: 2)],
     };
   }
 }

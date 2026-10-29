@@ -25,7 +25,7 @@ void main() {
       });
       expect(e.id, 'e1');
       expect(e.estado, EstadoEncomienda.tomada);
-      expect(e.estado.etiqueta, 'En camino');
+      expect(e.estado.etiqueta, 'Tomada');
       expect(e.remitenteUid, 'uidR');
       expect(e.viajeroUid, 'uidV');
       expect(e.fechaVencimiento, DateTime(2026, 12, 1));

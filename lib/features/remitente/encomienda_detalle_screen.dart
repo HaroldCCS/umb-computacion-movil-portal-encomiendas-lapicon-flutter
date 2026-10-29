@@ -20,6 +20,7 @@ import '../../data/models/rol.dart';
 import '../../providers.dart';
 import '../calificaciones/calificaciones_providers.dart';
 import 'envios_logic.dart';
+import 'remitente_providers.dart';
 import 'widgets/encomienda_ticket.dart';
 import 'widgets/status_timeline.dart';
 import 'widgets/trust_row.dart';
@@ -52,6 +53,18 @@ class _EncomiendaDetalleScreenState
   bool _calificada = false;
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Abrir el detalle cuenta como haber visto el aviso de "te la tomaron".
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uid = ref.read(sessionProvider).user?.uid;
+      if (mounted && uid != null && _e.estado == EstadoEncomienda.tomada) {
+        ref.read(estadosVistosProvider(uid).notifier).marcarVistas([_e]);
+      }
+    });
+  }
 
   /// Retirar es irreversible: se confirma escribiendo RETIRAR.
   Future<void> _retirar() async {
@@ -164,6 +177,30 @@ class _EncomiendaDetalleScreenState
               ),
         hijos: [
           EncomiendaTicket(encomienda: _e),
+          // Con viajero: lo primero que se ve es quién la lleva (docs/11 §2G).
+          if (viajero != null && _e.estado == EstadoEncomienda.tomada)
+            Grupo(
+              titulo: 'Quién la lleva',
+              hijos: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TrustRow(uid: viajero, nombre: _e.viajeroNombre),
+                      const SizedBox(height: 12),
+                      Boton(
+                        'Escribirle',
+                        icono: Icons.chat_bubble_outline,
+                        chico: true,
+                        variante: VarianteBoton.tonal,
+                        onTap: _abrirChat,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           Grupo(
             titulo: 'Estado',
             hijos: [
@@ -175,10 +212,15 @@ class _EncomiendaDetalleScreenState
                 ),
               ),
             ],
-            pie: _e.estado == EstadoEncomienda.disponible
-                ? 'Cuando un viajero de tu ruta la tome, te avisaremos aquí '
-                      'y podrán coordinar por chat.'
-                : null,
+            pie: switch (_e.estado) {
+              EstadoEncomienda.disponible =>
+                'Cuando un viajero de tu ruta la tome, te avisaremos aquí '
+                    'y podrán coordinar por chat.',
+              EstadoEncomienda.tomada =>
+                '${_e.viajeroNombre ?? 'Un viajero'} aceptó llevarla. '
+                    'Coordinen por chat dónde y cuándo se la entregas.',
+              _ => null,
+            },
           ),
           Grupo(
             titulo: 'Detalles',
@@ -211,9 +253,9 @@ class _EncomiendaDetalleScreenState
               ),
             ],
           ),
-          if (viajero != null)
+          if (viajero != null && _e.estado != EstadoEncomienda.tomada)
             Grupo(
-              titulo: 'Quién la lleva',
+              titulo: 'Quién la llevó',
               hijos: [
                 Padding(
                   padding: const EdgeInsets.all(16),

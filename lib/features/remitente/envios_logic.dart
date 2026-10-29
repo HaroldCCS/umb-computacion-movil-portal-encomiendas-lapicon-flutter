@@ -40,7 +40,12 @@ Map<PestanaEnvios, List<Encomienda>> agruparEnvios(List<Encomienda> lista) {
 }
 
 /// Pasos de la línea de tiempo del detalle.
-const pasosEncomienda = ['Publicada', 'Tomada', 'Entregada', 'Calificada'];
+const pasosEncomienda = [
+  'Publicada',
+  'Tomada por un viajero',
+  'Entregada',
+  'Calificada',
+];
 
 /// Índice del paso actual (0..3) o `null` si el estado es terminal sin
 /// entrega (vencida / desconocido).
@@ -105,7 +110,7 @@ Encomienda conEstado(Encomienda e, EstadoEncomienda estado) => Encomienda(
 /// Lo que muestra el Inicio del remitente (docs/08 §8.4).
 class ResumenEnvios {
   const ResumenEnvios({
-    required this.enCamino,
+    required this.tomadas,
     required this.disponibles,
     required this.entregadas,
     required this.porCalificar,
@@ -116,9 +121,7 @@ class ResumenEnvios {
     final activas = grupos[PestanaEnvios.activas]!;
     final entregadas = grupos[PestanaEnvios.entregadas]!;
     return ResumenEnvios(
-      enCamino: activas
-          .where((e) => e.estado == EstadoEncomienda.tomada)
-          .length,
+      tomadas: activas.where((e) => e.estado == EstadoEncomienda.tomada).length,
       disponibles: activas
           .where((e) => e.estado == EstadoEncomienda.disponible)
           .length,
@@ -131,12 +134,13 @@ class ResumenEnvios {
     );
   }
 
-  final int enCamino;
+  /// Activas que ya tienen viajero (`tomada`).
+  final int tomadas;
   final int disponibles;
   final int entregadas;
   final List<Encomienda> porCalificar;
 
-  int get activas => enCamino + disponibles;
+  int get activas => tomadas + disponibles;
 
   /// Frase bajo la cifra de la tarjeta principal.
   String get nota {
@@ -145,10 +149,45 @@ class ResumenEnvios {
       'No tienes envíos activos. Publica uno con el botón\u00A0+.';
     }
     final partes = [
-      if (enCamino > 0) '$enCamino ${enCamino == 1 ? 'va' : 'van'} en camino',
+      if (tomadas > 0)
+        '$tomadas ${tomadas == 1 ? 'tomada' : 'tomadas'} por un viajero',
       if (disponibles > 0)
         '$disponibles ${disponibles == 1 ? 'espera' : 'esperan'} viajero',
     ];
     return '${partes.join(' · ')}.';
   }
+}
+
+/// Encomiendas que un viajero tomó desde la última vez que el remitente las
+/// vio (`remitente_estados_vistos_{uid}`, mapa `id → estado`): estaban
+/// `disponible` (o no las conocía) y ahora están `tomada`. La primera vez
+/// (sin mapa) no avisa de nada, para no soltar todo de golpe.
+List<Encomienda> nuevasTomadas(
+  List<Encomienda> lista,
+  Map<String, String>? vistos,
+) {
+  if (vistos == null) return const [];
+  return [
+    for (final e in lista)
+      if (e.estado == EstadoEncomienda.tomada &&
+          (vistos[e.id] == null || vistos[e.id] == 'disponible'))
+        e,
+  ];
+}
+
+/// El mapa a guardar después de cargar: todo queda como visto, menos las
+/// nuevas tomadas, que esperan a que el remitente abra el detalle o toque
+/// "Entendido".
+Map<String, String> actualizarVistos(
+  List<Encomienda> lista,
+  Map<String, String>? vistos,
+) {
+  final pendientes = {for (final e in nuevasTomadas(lista, vistos)) e.id};
+  return {
+    for (final e in lista)
+      if (!pendientes.contains(e.id))
+        e.id: e.estado.apiValue
+      else if (vistos?[e.id] != null)
+        e.id: vistos![e.id]!,
+  };
 }

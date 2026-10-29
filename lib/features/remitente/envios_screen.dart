@@ -14,6 +14,7 @@ import '../calificaciones/calificaciones_providers.dart';
 import 'envios_logic.dart';
 import 'remitente_providers.dart';
 import 'remitente_routes.dart';
+import 'widgets/aviso_tomada.dart';
 import 'widgets/encomienda_ticket.dart';
 
 /// Pestaña "Envíos" del remitente: mis encomiendas agrupadas por estado en
@@ -26,6 +27,7 @@ class EnviosScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final envios = ref.watch(misEncomiendasProvider);
     final pestana = ref.watch(pestanaEnviosProvider);
+    escucharEstadosVistos(ref);
     final calificadas = calificadasDe(ref);
 
     Future<void> refrescar() async {
@@ -73,6 +75,7 @@ class EnviosScreen extends ConsumerWidget {
         _ when grupos == null => [const EsqueletoLista()],
         _ when grupos[pestana]!.isEmpty => [_vacio(context, ref, pestana)],
         _ => [
+          if (nuevasTomadasDe(ref).isNotEmpty) const AvisosTomadas(),
           for (final e in grupos[pestana]!)
             EncomiendaTicket(
               encomienda: e,

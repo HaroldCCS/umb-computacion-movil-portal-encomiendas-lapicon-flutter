@@ -32,6 +32,26 @@ class Prefs {
         ...{...calificadas(uid), encomiendaId},
       ]);
 
+  /// Último estado visto de cada encomienda del remitente (`id → estado`),
+  /// para avisar cuando un viajero la toma (docs/11 §2G). `null` si nunca se
+  /// guardó.
+  Map<String, String>? estadosVistos(String uid) {
+    final raw = _prefs.getString('remitente_estados_vistos_$uid');
+    if (raw == null) return null;
+    try {
+      final m = jsonDecode(raw) as Map<String, dynamic>;
+      return {
+        for (final par in m.entries)
+          if (par.value is String) par.key: par.value as String,
+      };
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> guardarEstadosVistos(String uid, Map<String, String> vistos) =>
+      _prefs.setString('remitente_estados_vistos_$uid', jsonEncode(vistos));
+
   /// Lista de strings cacheada (países, ciudades) con fecha de vencimiento.
   List<String>? listaCacheada(String key) {
     final raw = _prefs.getString('cache_$key');
