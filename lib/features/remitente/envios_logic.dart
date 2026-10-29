@@ -244,3 +244,39 @@ Encomienda _conNombre(Encomienda e, String nombre) => Encomienda(
   fechaVencimiento: e.fechaVencimiento,
   creadaEn: e.creadaEn,
 );
+
+/// Una sugerencia lista para mostrar: con nombre si `viajes/disponibles` lo da.
+typedef SugerenciaViajero = ({
+  String viajeroUid,
+  String? nombre,
+  double afinidad,
+  DateTime? fechaViaje,
+});
+
+/// Viajeros sugeridos para una encomienda: sin el propio remitente (puede
+/// tener un viaje en esa ruta), uno por viajero, los de más afinidad primero y
+/// como mucho [max].
+List<SugerenciaViajero> sugerenciasParaMostrar(
+  List<({String viajeroUid, double afinidad, DateTime? fechaViaje})> sugeridos,
+  List<Viaje> viajeros,
+  String? miUid, {
+  int max = 3,
+}) {
+  final nombres = {
+    for (final v in viajeros)
+      if (v.viajeroUid != null) v.viajeroUid!: v.viajeroNombre,
+  };
+  final vistos = <String>{};
+  final orden = [...sugeridos]
+    ..sort((a, b) => b.afinidad.compareTo(a.afinidad));
+  return [
+    for (final s in orden)
+      if (s.viajeroUid != miUid && vistos.add(s.viajeroUid))
+        (
+          viajeroUid: s.viajeroUid,
+          nombre: nombres[s.viajeroUid],
+          afinidad: s.afinidad,
+          fechaViaje: s.fechaViaje,
+        ),
+  ].take(max).toList();
+}

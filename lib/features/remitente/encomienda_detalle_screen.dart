@@ -222,6 +222,8 @@ class _EncomiendaDetalleScreenState
               _ => null,
             },
           ),
+          if (_e.estado == EstadoEncomienda.disponible)
+            _ViajerosSugeridos(encomienda: _e),
           Grupo(
             titulo: 'Detalles',
             hijos: [
@@ -318,5 +320,94 @@ class _EncomiendaDetalleScreenState
       case EstadoEncomienda.desconocido:
         return const [];
     }
+  }
+}
+
+/// "Viajeros sugeridos" (docs/11 §2F) en una encomienda disponible: la IA del
+/// backend propone viajes de la ruta y el remitente puede escribirles. Carga
+/// aparte y nunca bloquea el detalle.
+class _ViajerosSugeridos extends ConsumerWidget {
+  const _ViajerosSugeridos({required this.encomienda});
+
+  final Encomienda encomienda;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final estilo = TextStyle(fontSize: 15, color: c.texto2);
+    final sugeridos = ref.watch(viajerosSugeridosProvider(encomienda));
+    return Grupo(
+      titulo: 'Viajeros sugeridos',
+      pie: 'Sugeridos por IA según tu ruta, la fecha y lo que pagas.',
+      hijos: switch (sugeridos) {
+        AsyncData(:final value) when value.isEmpty => [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Aún no hay viajeros sugeridos para esta ruta. Te avisaremos '
+              'cuando alguien la tome.',
+              style: estilo,
+            ),
+          ),
+        ],
+        AsyncData(:final value) => [
+          for (final v in value)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TrustRow(uid: v.viajeroUid, nombre: v.nombre),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Viaja el ${Fmt.fecha(v.fechaViaje, corta: true)} · '
+                    'Afinidad ${(v.afinidad * 100).round()} %',
+                    style: TextStyle(fontSize: 13, color: c.texto2),
+                  ),
+                  const SizedBox(height: 8),
+                  Boton(
+                    'Escribirle',
+                    icono: Icons.chat_bubble_outline,
+                    chico: true,
+                    ancho: false,
+                    variante: VarianteBoton.tonal,
+                    onTap: () => context.push(
+                      Routes.chat,
+                      extra: ChatArgs(
+                        otroUid: v.viajeroUid,
+                        otroNombre: v.nombre,
+                        encomienda: encomienda,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        AsyncError() => [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Aviso(
+              'No pudimos traer sugerencias ahora. Tu encomienda sigue '
+              'publicada.',
+              accion: Boton(
+                'Reintentar',
+                chico: true,
+                ancho: false,
+                variante: VarianteBoton.secundario,
+                onTap: () =>
+                    ref.invalidate(viajerosSugeridosProvider(encomienda)),
+              ),
+            ),
+          ),
+        ],
+        _ => [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Buscando viajeros para tu ruta…', style: estilo),
+          ),
+        ],
+      },
+    );
   }
 }

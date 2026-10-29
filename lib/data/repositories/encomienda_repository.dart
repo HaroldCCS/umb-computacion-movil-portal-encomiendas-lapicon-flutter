@@ -2,6 +2,25 @@ import '../../core/network/api_client.dart';
 import '../models/encomienda.dart';
 import '../models/estado.dart';
 import '../models/json_utils.dart';
+import '../models/viaje.dart';
+
+/// Un viaje sugerido por `POST /api/encomiendas/emparejar-viajes` (sin
+/// nombre del viajero).
+class ViajeSugerido {
+  const ViajeSugerido({
+    required this.viajeId,
+    required this.viajeroUid,
+    required this.afinidad,
+    this.fechaViaje,
+  });
+
+  final String viajeId;
+  final String viajeroUid;
+
+  /// 0 a 1.
+  final double afinidad;
+  final DateTime? fechaViaje;
+}
 
 /// Respuesta de `GET /api/encomiendas/buscar`.
 class BusquedaEncomiendas {
@@ -41,6 +60,55 @@ class EncomiendaRepository {
       disponibles: _lista(m['disponibles'] ?? const []),
       tomadas: _lista(m['tomadas'] ?? const []),
     );
+  }
+
+  /// Viajes sugeridos por IA para una encomienda
+  /// (`POST /api/encomiendas/emparejar-viajes`, docs/11 §2F). Una vez tardó más
+  /// de 120 s: quien la use le pone su propio tiempo de espera.
+  Future<List<ViajeSugerido>> emparejar({
+    required String ciudadOrigen,
+    required String ciudadDestino,
+    required DateTime fecha,
+    required num valor,
+  }) async {
+    final json = await _api.post(
+      '/api/encomiendas/emparejar-viajes',
+      body: {
+        'ciudadOrigen': ciudadOrigen,
+        'ciudadDestino': ciudadDestino,
+        'fechaEncomienda': Viaje.fechaIso(fecha),
+        'valorEncomienda': valor,
+      },
+    );
+    return [
+      for (final m in unwrapList(json, const [
+        'viajes',
+        'sugerencias',
+        'data',
+      ]).whereType<Map>())
+        if (readString(Map<String, dynamic>.from(m), const [
+          'uid',
+          'viajeroUid',
+        ]).isNotEmpty)
+          ViajeSugerido(
+            viajeId: readString(Map<String, dynamic>.from(m), const [
+              'viajeId',
+              '_id',
+              'id',
+            ]),
+            viajeroUid: readString(Map<String, dynamic>.from(m), const [
+              'uid',
+              'viajeroUid',
+            ]),
+            afinidad:
+                (readNum(Map<String, dynamic>.from(m), const ['afinidad']) ?? 0)
+                    .clamp(0, 1)
+                    .toDouble(),
+            fechaViaje: readDate(Map<String, dynamic>.from(m), const [
+              'fechaViaje',
+            ]),
+          ),
+    ];
   }
 
   /// `POST /api/encomiendas`. Devuelve la encomienda creada (con `_id`).

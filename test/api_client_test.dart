@@ -244,6 +244,40 @@ void main() {
     expect(requests.last.headers['Authorization'], isNull);
   });
 
+  test('emparejar-viajes: viajes sugeridos con afinidad (28-oct)', () async {
+    final api = clientWith(
+      (req, _) => http.Response(
+        jsonEncode([
+          {
+            'viajeId': 'v1',
+            'uid': 'uidV',
+            'afinidad': 0.868,
+            'ciudadOrigen': 'Bogota',
+            'ciudadDestino': 'Miami',
+            'fechaViaje': '2026-12-01T00:00:00.000Z',
+          },
+          {'viajeId': 'v2', 'afinidad': 2},
+        ]),
+        200,
+      ),
+    );
+    final s = await EncomiendaRepository(api).emparejar(
+      ciudadOrigen: 'Bogota',
+      ciudadDestino: 'Miami',
+      fecha: DateTime(2026, 11, 30),
+      valor: 20,
+    );
+    // La que no trae uid no sirve para escribirle: se descarta.
+    expect(s.single.viajeroUid, 'uidV');
+    expect(s.single.afinidad, 0.868);
+    expect(jsonDecode(requests.single.body), {
+      'ciudadOrigen': 'Bogota',
+      'ciudadDestino': 'Miami',
+      'fechaEncomienda': '2026-11-30',
+      'valorEncomienda': 20,
+    });
+  });
+
   test('estado del chat: el 500 del backend no bloquea el chat', () async {
     final api = clientWith(
       (req, _) => http.Response(

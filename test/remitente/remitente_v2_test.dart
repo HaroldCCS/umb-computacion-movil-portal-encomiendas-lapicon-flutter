@@ -248,6 +248,57 @@ void main() {
       expect(resultados, [true]);
     });
 
+    testWidgets('disponible: viajeros sugeridos con nombre y afinidad', (
+      tester,
+    ) async {
+      await _montar(
+        tester,
+        EncomiendaDetalleScreen(encomienda: _e(EstadoEncomienda.disponible)),
+        extra: [
+          viajerosSugeridosProvider.overrideWith(
+            (ref, e) async => [
+              (
+                viajeroUid: 'v1',
+                nombre: 'Luis Pérez',
+                afinidad: 0.868,
+                fechaViaje: DateTime(2026, 12, 1),
+              ),
+            ],
+          ),
+        ],
+      );
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await tester.pumpAndSettle();
+      expect(find.text('VIAJEROS SUGERIDOS'), findsOneWidget);
+      expect(find.text('Luis Pérez'), findsOneWidget);
+      expect(find.textContaining('Afinidad 87 %'), findsOneWidget);
+      expect(find.text('Escribirle'), findsOneWidget);
+    });
+
+    testWidgets('si la IA falla, el detalle sigue y se puede reintentar', (
+      tester,
+    ) async {
+      await _montar(
+        tester,
+        EncomiendaDetalleScreen(encomienda: _e(EstadoEncomienda.disponible)),
+        extra: [
+          viajerosSugeridosProvider.overrideWith(
+            (ref, e) => Future.error(Exception('500')),
+          ),
+        ],
+      );
+      expect(find.text('Retirar encomienda'), findsOneWidget);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'No pudimos traer sugerencias ahora. Tu encomienda sigue publicada.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Reintentar'), findsOneWidget);
+    });
+
     testWidgets('tomada: quién la lleva va arriba y el estado lo explica', (
       tester,
     ) async {

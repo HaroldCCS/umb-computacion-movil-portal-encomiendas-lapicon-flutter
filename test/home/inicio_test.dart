@@ -140,6 +140,38 @@ void main() {
       },
     );
 
+    test('sugerencias: sin mí, sin repetir, por afinidad y con nombre', () {
+      final f = DateTime(2026, 12, 1);
+      final r = sugerenciasParaMostrar(
+        [
+          (viajeroUid: 'a', afinidad: 0.5, fechaViaje: f),
+          (viajeroUid: 'r1', afinidad: 0.99, fechaViaje: f),
+          (viajeroUid: 'b', afinidad: 0.9, fechaViaje: f),
+          (viajeroUid: 'b', afinidad: 0.8, fechaViaje: f),
+          (viajeroUid: 'c', afinidad: 0.7, fechaViaje: f),
+          (viajeroUid: 'd', afinidad: 0.1, fechaViaje: f),
+        ],
+        [
+          Viaje(
+            id: '',
+            numeroVuelo: '',
+            ciudadOrigen: 'Bogotá',
+            ciudadDestino: 'Miami',
+            fechaViaje: f,
+            estado: EstadoViaje.disponible,
+            viajeroUid: 'b',
+            viajeroNombre: 'Luis Pérez',
+          ),
+        ],
+        'r1',
+      );
+      expect(r.map((s) => (s.viajeroUid, s.nombre)), [
+        ('b', 'Luis Pérez'),
+        ('c', null),
+        ('a', null),
+      ]);
+    });
+
     test('nuevas tomadas: avisa una vez y solo de lo nuevo', () {
       final a = _e('a', EstadoEncomienda.disponible, viajero: null);
       final tomadaA = _e('a', EstadoEncomienda.tomada);

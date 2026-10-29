@@ -97,3 +97,43 @@ void escucharEstadosVistos(WidgetRef ref) {
     );
   });
 }
+
+/// Si la IA no responde en este tiempo, el detalle sigue sin sugerencias
+/// (una vez tardó más de 120 s).
+const esperaSugerencias = Duration(seconds: 15);
+
+/// Viajeros sugeridos por IA para una encomienda disponible (docs/11 §2F),
+/// con su nombre cuando `viajes/disponibles` lo da. Nunca bloquea: con error o
+/// demora, falla sola.
+final viajerosSugeridosProvider = FutureProvider.autoDispose
+    .family<List<SugerenciaViajero>, Encomienda>(
+      (ref, e) async {
+        final sugeridos = await ref
+            .watch(encomiendaRepositoryProvider)
+            .emparejar(
+              ciudadOrigen: e.ciudadOrigen,
+              ciudadDestino: e.ciudadDestino,
+              fecha: e.fechaVencimiento ?? DateTime.now(),
+              valor: e.valor,
+            )
+            .timeout(esperaSugerencias);
+        final viajeros = await ref
+            .watch(viajeRepositoryProvider)
+            .disponiblesEnRuta(e.ciudadOrigen, e.ciudadDestino)
+            .catchError((Object _) => const <Viaje>[]);
+        return sugerenciasParaMostrar(
+          [
+            for (final s in sugeridos)
+              (
+                viajeroUid: s.viajeroUid,
+                afinidad: s.afinidad,
+                fechaViaje: s.fechaViaje,
+              ),
+          ],
+          viajeros,
+          ref.watch(sessionProvider).user?.uid,
+        );
+      },
+      // Sin reintentos automáticos: si falla, se dice y la persona reintenta.
+      retry: (_, _) => null,
+    );
