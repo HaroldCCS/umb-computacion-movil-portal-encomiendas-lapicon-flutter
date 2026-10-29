@@ -44,8 +44,21 @@ class _SesionFalsa extends ChangeNotifier implements SessionController {
 }
 
 class _EncomiendasFalsas implements EncomiendaRepository {
+  _EncomiendasFalsas({this.busqueda = const BusquedaEncomiendas()});
+
+  final BusquedaEncomiendas busqueda;
   String? tomada;
   EstadoEncomienda? nuevoEstado;
+  final rutasBuscadas = <String>[];
+
+  @override
+  Future<BusquedaEncomiendas> buscar({
+    required String origen,
+    required String destino,
+  }) async {
+    rutasBuscadas.add('$origen→$destino');
+    return busqueda;
+  }
 
   @override
   Future<Encomienda?> tomar(String id) async {
@@ -211,6 +224,60 @@ void main() {
     );
   });
 
+  group('buscar en mi ruta (docs/11 §2B)', () {
+    test(
+      'Explorar sin las propias; Mis entregas = tomadas + teléfono',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final store = await ViajeroLocalStore.abrir();
+        // Entregada desde este teléfono: buscar ya no la trae.
+        await store.guardarEntrega(
+          'yo',
+          _e('l1', EstadoEncomienda.entregada, viajero: 'yo'),
+        );
+        const propia = Encomienda(
+          id: 'mia',
+          ciudadOrigen: 'Bogota',
+          ciudadDestino: 'Miami',
+          observaciones: 'x',
+          moneda: 'USD',
+          valor: 5,
+          estado: EstadoEncomienda.disponible,
+          remitenteUid: 'yo',
+        );
+        final repo = _EncomiendasFalsas(
+          busqueda: BusquedaEncomiendas(
+            disponibles: [propia, _e('otra', EstadoEncomienda.disponible)],
+            tomadas: [_e('t1', EstadoEncomienda.tomada, viajero: 'yo')],
+          ),
+        );
+        final c = ProviderContainer(
+          overrides: [
+            sessionProvider.overrideWithValue(_SesionFalsa()),
+            miViajeProvider.overrideWith((ref) async => _viaje),
+            encomiendaRepositoryProvider.overrideWithValue(repo),
+            viajeroLocalStoreProvider.overrideWith((ref) async => store),
+          ],
+        );
+        addTearDown(c.dispose);
+        final disponibles = c.listen(disponiblesEnMiRutaProvider, (_, _) {});
+        final entregas = c.listen(misEntregasProvider, (_, _) {});
+        addTearDown(disponibles.close);
+        addTearDown(entregas.close);
+
+        expect(
+          (await c.read(disponiblesEnMiRutaProvider.future)).map((e) => e.id),
+          ['otra'],
+        );
+        final mias = await c.read(misEntregasProvider.future);
+        expect(mias.map((e) => e.id), ['t1', 'l1']);
+        expect(mias.first.remitenteUid, 'r1');
+        // Explorar y Mis entregas comparten una sola búsqueda.
+        expect(repo.rutasBuscadas, ['Bogota→Miami']);
+      },
+    );
+  });
+
   group('Explorar', () {
     testWidgets('lista la ruta y cambia el orden con los chips', (
       tester,
@@ -366,6 +433,21 @@ void main() {
       await tester.pumpAndSettle();
       expect(repo.nuevoEstado, EstadoEncomienda.entregada);
       expect(find.text('Calificar al remitente'), findsOneWidget);
+    });
+
+    testWidgets('el viajero puede escribir primero y ve al remitente', (
+      tester,
+    ) async {
+      await _montar(
+        tester,
+        EncomiendaViajeroScreen(
+          encomienda: _e('e1', EstadoEncomienda.tomada, viajero: 'yo'),
+        ),
+      );
+      expect(find.textContaining('escriba primero'), findsNothing);
+      expect(find.text('Laura'), findsOneWidget);
+      final chat = find.widgetWithText(Boton, 'Abrir chat con el remitente');
+      expect(tester.widget<Boton>(chat).onTap, isNotNull);
     });
 
     testWidgets('el error de una acción va junto a ella', (tester) async {

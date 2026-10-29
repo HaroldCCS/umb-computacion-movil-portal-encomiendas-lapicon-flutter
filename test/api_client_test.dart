@@ -7,6 +7,7 @@ import 'package:lapticon_app/core/network/api_client.dart';
 import 'package:lapticon_app/core/network/app_exception.dart';
 import 'package:lapticon_app/data/models/estado.dart';
 import 'package:lapticon_app/data/repositories/chat_repository.dart';
+import 'package:lapticon_app/data/repositories/encomienda_repository.dart';
 
 void main() {
   late List<http.Request> requests;
@@ -31,6 +32,47 @@ void main() {
       }),
     );
   }
+
+  test('buscar trae disponibles y tomadas con uid y nombre (28-oct)', () async {
+    // referencias/respuestas/fase0_buscar_tomada.json, recortada.
+    final api = clientWith(
+      (req, _) => http.Response.bytes(
+        utf8.encode(
+          jsonEncode({
+            'disponibles': [],
+            'tomadas': [
+              {
+                '_id': '6ae296ed411da1034525b384',
+                'uid': 'uidR',
+                'ciudadOrigen': 'Cali',
+                'ciudadDestino': 'Lima',
+                'moneda': 'USD',
+                'valor': 1,
+                'estado': 'tomada',
+                'viajeroId': 'uidV',
+                'fotoUrl': null,
+                'remitenteNombre': 'Harold',
+              },
+            ],
+          }),
+        ),
+        200,
+      ),
+    );
+    final b = await EncomiendaRepository(
+      api,
+    ).buscar(origen: 'Cali', destino: 'Lima');
+    expect(
+      requests.single.url.toString(),
+      'https://api.test/api/encomiendas/buscar?origen=Cali&destino=Lima',
+    );
+    expect(b.disponibles, isEmpty);
+    final t = b.tomadas.single;
+    expect(
+      [t.remitenteUid, t.remitenteNombre, t.viajeroUid, t.estado],
+      ['uidR', 'Harold', 'uidV', EstadoEncomienda.tomada],
+    );
+  });
 
   test('PATCH manda el cuerpo en JSON (cancelar viaje)', () async {
     final api = clientWith(

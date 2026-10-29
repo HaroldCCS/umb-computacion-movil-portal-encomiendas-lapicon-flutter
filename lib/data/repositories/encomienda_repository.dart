@@ -3,6 +3,17 @@ import '../models/encomienda.dart';
 import '../models/estado.dart';
 import '../models/json_utils.dart';
 
+/// Respuesta de `GET /api/encomiendas/buscar`.
+class BusquedaEncomiendas {
+  const BusquedaEncomiendas({
+    this.disponibles = const [],
+    this.tomadas = const [],
+  });
+
+  final List<Encomienda> disponibles;
+  final List<Encomienda> tomadas;
+}
+
 /// Acceso a `/api/encomiendas` (docs/03 §3.2). Contrato compartido por las
 /// funcionalidades de remitente y viajero: no cambiar firmas sin avisar.
 class EncomiendaRepository {
@@ -14,17 +25,23 @@ class EncomiendaRepository {
   Future<List<Encomienda>> mias() async =>
       _lista(await _api.get('/api/encomiendas'));
 
-  /// Encomiendas que un viajero puede tomar en su ruta
-  /// (`GET /api/encomiendas/disponibles?origen=&destino=`).
-  Future<List<Encomienda>> disponibles({
+  /// Viajero, en una ruta (`GET /api/encomiendas/buscar?origen=&destino=`):
+  /// las disponibles (incluye las mías como remitente) y las que tomé, solo
+  /// mientras siguen `tomada`. Todas con `uid` y `remitenteNombre`.
+  Future<BusquedaEncomiendas> buscar({
     required String origen,
     required String destino,
-  }) async => _lista(
-    await _api.get(
-      '/api/encomiendas/disponibles',
+  }) async {
+    final json = await _api.get(
+      '/api/encomiendas/buscar',
       query: {'origen': origen, 'destino': destino},
-    ),
-  );
+    );
+    final m = json is Map ? json : const {};
+    return BusquedaEncomiendas(
+      disponibles: _lista(m['disponibles'] ?? const []),
+      tomadas: _lista(m['tomadas'] ?? const []),
+    );
+  }
 
   /// `POST /api/encomiendas`. Devuelve la encomienda creada (con `_id`).
   Future<Encomienda> crear({

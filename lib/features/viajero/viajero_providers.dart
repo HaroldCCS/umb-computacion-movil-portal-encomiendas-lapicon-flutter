@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/app_exception.dart';
 import '../../data/models/encomienda.dart';
 import '../../data/models/viaje.dart';
+import '../../data/repositories/encomienda_repository.dart';
 import '../../providers.dart';
 import 'viajero_local_store.dart';
 import 'viajero_logic.dart';
@@ -31,7 +32,20 @@ final historialViajesProvider = FutureProvider.autoDispose<List<Viaje>>((
   );
 });
 
-/// Encomiendas que tomé (ver supuesto en [combinarEntregas]).
+/// `GET /api/encomiendas/buscar` en la ruta de mi viaje activo. Explorar y
+/// "Mis entregas" lo comparten, así que se pide una sola vez.
+final busquedaEnMiRutaProvider =
+    FutureProvider.autoDispose<BusquedaEncomiendas>((ref) async {
+      final viaje = await ref.watch(miViajeProvider.future);
+      if (viaje == null) return const BusquedaEncomiendas();
+      return ref
+          .watch(encomiendaRepositoryProvider)
+          .buscar(origen: viaje.ciudadOrigen, destino: viaje.ciudadDestino);
+    });
+
+/// Encomiendas que tomé: las `tomadas` del servidor en mi ruta más las
+/// guardadas en el teléfono, que siguen haciendo falta porque `buscar` deja de
+/// traerlas al entregarlas (ver [combinarEntregas]).
 final misEntregasProvider = FutureProvider.autoDispose<List<Encomienda>>((
   ref,
 ) async {
@@ -41,7 +55,7 @@ final misEntregasProvider = FutureProvider.autoDispose<List<Encomienda>>((
   final locales = store.entregas(uid);
   List<Encomienda> servidor;
   try {
-    servidor = await ref.watch(encomiendaRepositoryProvider).mias();
+    servidor = (await ref.watch(busquedaEnMiRutaProvider.future)).tomadas;
   } on AppException {
     // Sin servidor se muestran al menos las registradas en el teléfono.
     if (locales.isEmpty) rethrow;
@@ -50,27 +64,14 @@ final misEntregasProvider = FutureProvider.autoDispose<List<Encomienda>>((
   return combinarEntregas(servidor: servidor, locales: locales, uid: uid);
 });
 
-/// Encomiendas disponibles en la ruta de mi viaje activo.
+/// Encomiendas disponibles en la ruta de mi viaje activo, sin las que publiqué
+/// yo (`buscar` sí las incluye).
 final disponiblesEnMiRutaProvider =
     FutureProvider.autoDispose<List<Encomienda>>((ref) async {
-      final viaje = await ref.watch(miViajeProvider.future);
-      if (viaje == null) return const [];
-      final repo = ref.watch(encomiendaRepositoryProvider);
-      final lista = await repo.disponibles(
-        origen: viaje.ciudadOrigen,
-        destino: viaje.ciudadDestino,
-      );
-      // Mis encomiendas como remitente, para no ofrecérmelas a mí mismo.
-      var propias = <String>{};
-      try {
-        propias = {for (final e in await repo.mias()) e.id};
-      } on AppException {
-        // Si falla, se muestran igual; el remitente no debería tomarlas.
-      }
+      final busqueda = await ref.watch(busquedaEnMiRutaProvider.future);
       return paraTomar(
-        lista,
+        busqueda.disponibles,
         ref.watch(sessionProvider).user?.uid,
-        idsPropios: propias,
       );
     });
 
@@ -78,6 +79,7 @@ final disponiblesEnMiRutaProvider =
 void refrescarViajero(WidgetRef ref) {
   ref.invalidate(miViajeProvider);
   ref.invalidate(historialViajesProvider);
+  ref.invalidate(busquedaEnMiRutaProvider);
   ref.invalidate(misEntregasProvider);
   ref.invalidate(disponiblesEnMiRutaProvider);
 }

@@ -25,11 +25,11 @@ String? validarNumeroVuelo(String? value) {
   return null;
 }
 
-/// "Mis entregas": no hay endpoint propio, así que se combinan
-/// 1. las encomiendas de `GET /api/encomiendas` cuyo viajero soy yo (si el
-///    backend también devuelve las que tomé), y
-/// 2. las que tomé desde este teléfono (registro local), por si el backend
-///    solo devuelve las del remitente.
+/// "Mis entregas": se combinan
+/// 1. las `tomadas` de `GET /api/encomiendas/buscar` (solo las que siguen
+///    `tomada`, en la ruta de mi viaje), y
+/// 2. las que tomé o entregué desde este teléfono (registro local), porque
+///    `buscar` deja de traerlas al entregarlas.
 /// Si una encomienda está en ambos lados, gana la del servidor (estado fresco).
 List<Encomienda> combinarEntregas({
   required List<Encomienda> servidor,
@@ -65,8 +65,8 @@ int _prioridad(EstadoEncomienda e) => switch (e) {
 };
 
 /// Encomiendas que el viajero puede tomar: disponibles y que no son suyas.
-/// `/disponibles` no trae el uid del remitente, por eso también se excluyen
-/// los [idsPropios] (las que publiqué como remitente).
+/// `buscar` incluye las que publiqué yo y trae el uid del remitente;
+/// [idsPropios] sirve para listas sin uid.
 List<Encomienda> paraTomar(
   List<Encomienda> lista,
   String? uid, {

@@ -252,10 +252,12 @@ class _EncomiendaViajeroScreenState
             Padding(
               padding: const EdgeInsets.all(16),
               child: sinRemitente
-                  // El backend solo da el nombre (no el uid) en /disponibles.
+                  // Solo pasa con encomiendas guardadas antes de usar
+                  // /buscar, que trae el uid.
                   ? Text(
-                      '${_e.remitenteNombre == null ? 'El remitente' : 'La publicó ${_e.remitenteNombre}'}. '
-                      'Podrás escribirle cuando te escriba primero por el chat.',
+                      _e.remitenteNombre == null
+                          ? 'Remitente'
+                          : 'La publicó ${_e.remitenteNombre}.',
                       style: TextStyle(fontSize: 15, color: c.texto2),
                     )
                   : PersonaTrustRow(
