@@ -45,9 +45,6 @@ void main() {
       expect(normalizarVuelo(' av 24 '), 'AV24');
       expect(normalizarVuelo('la-2401'), 'LA2401');
     });
-    test('clave de vuelo', () {
-      expect(claveVuelo('av 24', DateTime(2026, 12, 1)), 'AV24|2026-12-01');
-    });
   });
 
   group('combinarEntregas', () {

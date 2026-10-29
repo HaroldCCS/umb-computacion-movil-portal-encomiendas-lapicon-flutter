@@ -18,7 +18,6 @@ import '../../core/widgets/tarjeta_hero.dart';
 import '../../data/models/encomienda.dart';
 import '../../data/models/rol.dart';
 import '../../data/models/viaje.dart';
-import '../../providers.dart';
 import '../calificaciones/calificaciones_providers.dart';
 import '../home/home_providers.dart';
 import 'viajero_logic.dart';
@@ -85,13 +84,6 @@ class MiViajeScreen extends ConsumerWidget {
   }
 
   List<Widget> _conViaje(BuildContext context, WidgetRef ref, Viaje viaje) {
-    final uid = ref.watch(sessionProvider).user?.uid;
-    final verificado = switch (ref.watch(viajeroLocalStoreProvider)) {
-      AsyncData(:final value) =>
-        uid != null &&
-            value.vueloVerificado(uid, viaje.numeroVuelo, viaje.fechaViaje),
-      _ => false,
-    };
     final entregas = ref.watch(misEntregasProvider);
     final lista = entregas.value ?? const <Encomienda>[];
     final pendientes = porEntregar(lista);
@@ -100,8 +92,6 @@ class MiViajeScreen extends ConsumerWidget {
 
     final vuelo = viaje.numeroVuelo.isEmpty ? 'Vuelo' : viaje.numeroVuelo;
     final nota = '$vuelo · ${Fmt.fecha(viaje.fechaViaje)}';
-    // Si el vuelo no se pudo verificar, la tarjeta lo dice siempre.
-    final etiquetaVuelo = verificado ? 'Vuelo verificado' : 'Sin verificar';
 
     return [
       TarjetaHero(
@@ -115,11 +105,7 @@ class MiViajeScreen extends ConsumerWidget {
         nota: nota,
         semantica:
             'Tu viaje de ${viaje.ciudadOrigen} a ${viaje.ciudadDestino}. '
-            '$nota. $etiquetaVuelo. Llevas ${pendientes.length} por entregar.',
-        insignia: EtiquetaVidrio(
-          etiquetaVuelo,
-          icono: verificado ? Icons.verified : Icons.help_outline_rounded,
-        ),
+            '$nota. Llevas ${pendientes.length} por entregar.',
         subTarjetas: [
           SubTarjetaVidrio(
             etiqueta: 'Por entregar',

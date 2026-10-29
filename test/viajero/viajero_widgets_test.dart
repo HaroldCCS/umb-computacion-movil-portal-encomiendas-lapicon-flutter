@@ -76,12 +76,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(resultado, isTrue);
   });
-
-  testWidgets('VueloVerificadoBadge es legible', (tester) async {
-    final handle = tester.ensureSemantics();
-    await tester.pumpWidget(_wrap(const VueloVerificadoBadge()));
-    expect(find.bySemanticsLabel('Vuelo verificado'), findsOneWidget);
-    await expectLater(tester, meetsGuideline(textContrastGuideline));
-    handle.dispose();
-  });
 }

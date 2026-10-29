@@ -32,7 +32,7 @@ class TarjetaHero extends StatelessWidget {
   final Widget principal;
   final String? nota;
 
-  /// Etiqueta arriba a la derecha (p. ej. [EtiquetaVidrio] "Vuelo verificado").
+  /// Etiqueta arriba a la derecha (p. ej. una [EtiquetaVidrio]).
   final Widget? insignia;
 
   /// 0..1; con [etiquetaAvance] muestra una barra.
@@ -268,8 +268,8 @@ class SubTarjetaVidrio extends StatelessWidget {
   }
 }
 
-/// Etiqueta en píldora de vidrio para usar sobre la tarjeta principal
-/// ("Vuelo verificado"). Lleva ícono además del texto.
+/// Etiqueta en píldora de vidrio para usar sobre la tarjeta principal.
+/// Lleva ícono además del texto.
 class EtiquetaVidrio extends StatelessWidget {
   const EtiquetaVidrio(this.texto, {super.key, required this.icono});
 

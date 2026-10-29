@@ -261,7 +261,7 @@ void main() {
   });
 
   group('Registrar viaje', () {
-    testWidgets('verificar sin fecha lo explica junto al botón', (
+    testWidgets('fecha en hoja iOS y nada sobre verificar el vuelo', (
       tester,
     ) async {
       await _montar(
@@ -269,24 +269,14 @@ void main() {
         const RegistrarViajeScreen(),
         extra: [viajeRepositoryProvider.overrideWithValue(_ViajesFalsos())],
       );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'AV24'),
-        'av24',
-      );
-      await _tocar(tester, 'Verificar vuelo');
+      // Verificar vuelo se quitó (docs/11 §2H): ningún texto lo menciona.
       expect(
-        find.text('Elige la fecha del vuelo para verificarlo.'),
+        find.text('Los remitentes de tu ruta verán tu vuelo y fecha.'),
         findsOneWidget,
       );
-    });
-
-    testWidgets('fecha en hoja iOS; sin servicio queda "sin verificar"', (
-      tester,
-    ) async {
-      await _montar(
-        tester,
-        const RegistrarViajeScreen(),
-        extra: [viajeRepositoryProvider.overrideWithValue(_ViajesFalsos())],
+      expect(
+        find.textContaining(RegExp('verific', caseSensitive: false)),
+        findsNothing,
       );
       await tester.enterText(
         find.widgetWithText(TextFormField, 'AV24'),
@@ -298,9 +288,7 @@ void main() {
       expect(find.text('Fecha del vuelo'), findsWidgets);
       await tester.tap(find.text('Elegir esta fecha'));
       await tester.pumpAndSettle();
-      await _tocar(tester, 'Verificar vuelo');
-      expect(find.text('Verificación no disponible'), findsOneWidget);
-      expect(find.textContaining('"sin verificar"'), findsOneWidget);
+      expect(find.text('Verificar vuelo'), findsNothing);
     });
 
     testWidgets('una regla del backend se explica en una hoja', (tester) async {

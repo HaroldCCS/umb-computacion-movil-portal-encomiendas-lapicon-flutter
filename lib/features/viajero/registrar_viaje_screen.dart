@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/network/app_exception.dart';
-import '../../core/theme/tema.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/validators.dart';
 import '../../core/widgets/aviso.dart';
@@ -19,16 +18,9 @@ import '../catalogo/ciudad_field.dart';
 import 'viajero_logic.dart';
 import 'viajero_providers.dart';
 
-enum _Verificacion {
-  ninguna,
-  verificando,
-  verificado,
-  noEncontrado,
-  noDisponible,
-}
-
-/// Registrar un viaje (`POST /api/viajes`) con verificación del vuelo
-/// contra AeroDataBox (`GET /api/vuelos/:numero/:fecha`).
+/// Registrar un viaje (`POST /api/viajes`). La consulta del vuelo
+/// (`GET /api/vuelos/:numero/:fecha`) no se muestra: el servidor responde 500
+/// (docs/11 §2H).
 class RegistrarViajeScreen extends ConsumerStatefulWidget {
   const RegistrarViajeScreen({super.key});
 
@@ -45,11 +37,6 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
   final _destino = TextEditingController();
   DateTime? _fecha;
   bool _loading = false;
-  _Verificacion _verificacion = _Verificacion.ninguna;
-  List<String> _datosVuelo = const [];
-
-  /// Por qué no se pudo verificar (falta el número o la fecha).
-  String? _errorVerificar;
 
   /// Error al registrar, junto al botón.
   String? _error;
@@ -61,16 +48,6 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
     _origen.dispose();
     _destino.dispose();
     super.dispose();
-  }
-
-  void _resetVerificacion() {
-    if (_verificacion != _Verificacion.ninguna || _errorVerificar != null) {
-      setState(() {
-        _verificacion = _Verificacion.ninguna;
-        _datosVuelo = const [];
-        _errorVerificar = null;
-      });
-    }
   }
 
   /// Selector de fecha estilo iOS en una hoja (docs/08 §8.8-4).
@@ -90,7 +67,6 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
       _fecha = elegida;
       _fechaTexto.text = Fmt.fecha(elegida);
     });
-    _resetVerificacion();
   }
 
   void _intercambiar() {
@@ -99,42 +75,6 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
       _origen.text = _destino.text;
       _destino.text = o;
     });
-  }
-
-  Future<void> _verificar() async {
-    FocusScope.of(context).unfocus();
-    final errorVuelo = validarNumeroVuelo(_vuelo.text);
-    final fecha = _fecha;
-    if (errorVuelo != null || fecha == null) {
-      setState(
-        () => _errorVerificar =
-            errorVuelo ?? 'Elige la fecha del vuelo para verificarlo.',
-      );
-      return;
-    }
-    setState(() {
-      _verificacion = _Verificacion.verificando;
-      _errorVerificar = null;
-    });
-    try {
-      final json = await ref
-          .read(viajeRepositoryProvider)
-          .validarVuelo(normalizarVuelo(_vuelo.text), fecha);
-      if (!mounted) return;
-      setState(() {
-        _verificacion = _Verificacion.verificado;
-        _datosVuelo = resumenVuelo(json);
-      });
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(
-        () => _verificacion = e.isNotFound
-            ? _Verificacion.noEncontrado
-            : _Verificacion.noDisponible,
-      );
-    } on AppException {
-      if (mounted) setState(() => _verificacion = _Verificacion.noDisponible);
-    }
   }
 
   Future<void> _registrar() async {
@@ -162,12 +102,6 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
             ciudadDestino: _destino.text,
             fechaViaje: fecha,
           );
-      final uid = ref.read(sessionProvider).user?.uid;
-      if (uid != null && _verificacion == _Verificacion.verificado) {
-        final store = await ref.read(viajeroLocalStoreProvider.future);
-        await store.marcarVueloVerificado(uid, numero, fecha);
-        ref.invalidate(viajeroLocalStoreProvider);
-      }
       refrescarViajero(ref);
       if (!mounted) return;
       mostrarToast(context, 'Viaje registrado. ¡Buen vuelo!');
@@ -211,9 +145,7 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
       child: Pantalla(
         titulo: 'Registrar viaje',
         textoAtras: 'Mi viaje',
-        subtitulo:
-            'Lo verificamos con la aerolínea para que los remitentes '
-            'confíen en ti.',
+        subtitulo: 'Los remitentes de tu ruta verán tu vuelo y fecha.',
         hijos: [
           // Un solo bloque: así todos los campos existen al validar.
           Column(
@@ -234,7 +166,6 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
                   LengthLimitingTextInputFormatter(8),
                 ],
                 validador: validarNumeroVuelo,
-                alCambiar: (_) => _resetVerificacion(),
               ),
               const SizedBox(height: 16),
               Campo(
@@ -268,13 +199,6 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
                 controller: _destino,
                 icon: Icons.flight_land,
               ),
-              const SizedBox(height: 24),
-              _EstadoVerificacion(
-                estado: _verificacion,
-                datos: _datosVuelo,
-                error: _errorVerificar,
-                onVerificar: _loading ? null : _verificar,
-              ),
               const SizedBox(height: 28),
               if (_error != null) ...[
                 Aviso(_error!, tipo: TipoAviso.error),
@@ -285,98 +209,11 @@ class _RegistrarViajeScreenState extends ConsumerState<RegistrarViajeScreen> {
                 icono: Icons.flight_takeoff,
                 textoCargando: 'Registrando…',
                 cargando: _loading,
-                onTap: _verificacion == _Verificacion.verificando
-                    ? null
-                    : _registrar,
+                onTap: _registrar,
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Estado de la verificación del vuelo. Si no se pudo verificar, se dice
-/// claro que el viaje quedará "sin verificar" (docs/08 §8.1).
-class _EstadoVerificacion extends StatelessWidget {
-  const _EstadoVerificacion({
-    required this.estado,
-    required this.datos,
-    required this.error,
-    required this.onVerificar,
-  });
-
-  final _Verificacion estado;
-  final List<String> datos;
-  final String? error;
-  final VoidCallback? onVerificar;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget reintentar(String texto) => Boton(
-      texto,
-      chico: true,
-      ancho: false,
-      variante: VarianteBoton.secundario,
-      onTap: onVerificar,
-    );
-
-    final Widget contenido = switch (estado) {
-      _Verificacion.ninguna || _Verificacion.verificando => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Boton(
-            'Verificar vuelo',
-            icono: Icons.verified_outlined,
-            variante: VarianteBoton.tonal,
-            textoCargando: 'Verificando vuelo…',
-            cargando: estado == _Verificacion.verificando,
-            onTap: onVerificar,
-          ),
-          if (error != null) ...[
-            const SizedBox(height: 8),
-            Aviso(error!, tipo: TipoAviso.error),
-          ],
-        ],
-      ),
-      _Verificacion.verificado => Aviso(
-        datos.isEmpty ? 'La aerolínea confirma tu vuelo.' : datos.join('\n'),
-        titulo: 'Vuelo verificado',
-        tipo: TipoAviso.exito,
-      ),
-      _Verificacion.noEncontrado => Aviso(
-        'No encontramos ese vuelo para esa fecha. Revisa el número y la '
-        'fecha; si estás seguro, puedes registrarlo igual y aparecerá como '
-        '"sin verificar".',
-        titulo: 'Vuelo no encontrado',
-        tipo: TipoAviso.atencion,
-        accion: reintentar('Intentar de nuevo'),
-      ),
-      _Verificacion.noDisponible => Aviso(
-        'Ahora no pudimos verificar el vuelo. Puedes registrarlo igual: '
-        'aparecerá como "sin verificar".',
-        titulo: 'Verificación no disponible',
-        tipo: TipoAviso.atencion,
-        accion: reintentar('Intentar de nuevo'),
-      ),
-    };
-
-    return Semantics(
-      liveRegion: true,
-      child: AnimatedSwitcher(
-        duration: Movimiento.duracion(
-          context,
-          const Duration(milliseconds: 200),
-        ),
-        child: KeyedSubtree(
-          key: ValueKey(
-            estado == _Verificacion.verificando
-                ? _Verificacion.ninguna
-                : estado,
-          ),
-          child: contenido,
-        ),
       ),
     );
   }

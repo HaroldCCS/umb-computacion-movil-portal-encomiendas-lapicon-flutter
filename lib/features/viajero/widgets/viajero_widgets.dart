@@ -49,18 +49,6 @@ class EncomiendaTicket extends StatelessWidget {
   }
 }
 
-/// Insignia verde "Vuelo verificado" (validado con AeroDataBox).
-class VueloVerificadoBadge extends StatelessWidget {
-  const VueloVerificadoBadge({super.key});
-
-  @override
-  Widget build(BuildContext context) => const Insignia(
-    'Vuelo verificado',
-    icono: Icons.verified,
-    tipo: TipoInsignia.exito,
-  );
-}
-
 /// Fila de confianza: avatar · nombre · ★ promedio (n calificaciones).
 class PersonaTrustRow extends ConsumerWidget {
   const PersonaTrustRow({

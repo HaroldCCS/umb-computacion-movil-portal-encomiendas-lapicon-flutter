@@ -54,7 +54,8 @@ class ViajeRepository {
 
   /// Valida el vuelo con AeroDataBox (`GET /api/vuelos/:numero/:fecha`).
   /// Devuelve la respuesta cruda (forma aún no confirmada) o lanza
-  /// [ApiException] (404 = vuelo no encontrado).
+  /// [ApiException] (404 = vuelo no encontrado). No se usa en la interfaz
+  /// mientras el servidor responda 500 (`RAPIDAPI_KEY`); ver docs/11 §2H.
   Future<Map<String, dynamic>> validarVuelo(
     String numero,
     DateTime fecha,

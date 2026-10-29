@@ -3,7 +3,6 @@ library;
 
 import '../../data/models/encomienda.dart';
 import '../../data/models/estado.dart';
-import '../../data/models/viaje.dart';
 
 /// Código de aerolínea (2 caracteres IATA, letras o dígitos) + 1 a 4 dígitos
 /// + sufijo opcional. Acepta "AA123", "AV 24", "4C5021", "LA2401A".
@@ -25,10 +24,6 @@ String? validarNumeroVuelo(String? value) {
   }
   return null;
 }
-
-/// Clave para recordar que un vuelo se verificó con AeroDataBox.
-String claveVuelo(String numero, DateTime? fecha) =>
-    '${normalizarVuelo(numero)}|${fecha == null ? '' : Viaje.fechaIso(fecha)}';
 
 /// "Mis entregas": no hay endpoint propio, así que se combinan
 /// 1. las encomiendas de `GET /api/encomiendas` cuyo viajero soy yo (si el
@@ -150,6 +145,7 @@ Map<String, dynamic> encomiendaToJson(Encomienda e) => {
 
 /// Extrae datos legibles de la respuesta de `/api/vuelos/:numero/:fecha`
 /// (forma no confirmada; se reconocen formatos comunes de AeroDataBox).
+/// No se usa en la interfaz mientras el servidor responda 500; ver docs/11 §2H.
 List<String> resumenVuelo(Map<String, dynamic> json) {
   String? nombre(dynamic v) {
     if (v is String && v.trim().isNotEmpty) return v.trim();

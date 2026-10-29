@@ -297,7 +297,7 @@ void main() {
       }),
     ];
 
-    testWidgets('hero con ruta, vuelo sin verificar y ganancias', (
+    testWidgets('hero con ruta, sin insignia de vuelo y ganancias', (
       tester,
     ) async {
       await montar(
@@ -306,7 +306,8 @@ void main() {
         overrides([_e('1', EstadoEncomienda.tomada, valor: 25)]),
       );
       expect(find.text('Bogotá → Miami'), findsWidgets);
-      expect(find.text('Sin verificar'), findsOneWidget);
+      expect(find.text('Sin verificar'), findsNothing);
+      expect(find.text('Vuelo verificado'), findsNothing);
       expect(find.text('USD 25'), findsWidgets);
       expect(find.text('Tienes una encomienda por entregar'), findsOneWidget);
       await tester.scrollUntilVisible(
