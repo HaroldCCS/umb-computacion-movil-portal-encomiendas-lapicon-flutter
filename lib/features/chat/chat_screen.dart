@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/app_exception.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/tema.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/widgets/aviso.dart';
 import '../../core/widgets/avatar.dart';
 import '../../core/widgets/insignia.dart';
@@ -110,8 +111,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final mensajes = ref.watch(mensajesChatProvider(chatId));
     final estado = ref.watch(estadoChatProvider(chatId));
     final cerrado =
-        _cerradoAlEnviar ||
-        (estado.hasValue && estado.value == EstadoChat.cerrado);
+        _cerradoAlEnviar || estado.value?.estado == EstadoChat.cerrado;
+    final fechaCierre = estado.value?.fechaCierre;
     final encomienda = widget.args.encomienda;
 
     return Scaffold(
@@ -225,6 +226,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           CompositorMensaje(
             cerrado: cerrado,
+            textoCerrado: fechaCierre == null
+                ? 'Este chat se cerró porque la entrega terminó.'
+                : 'Este chat se cerró el ${Fmt.fecha(fechaCierre.toLocal())}, '
+                      'cuando la encomienda se marcó como entregada.',
             enviando: _enviando,
             onEnviar: (texto) => _enviar(miUid, chatId, texto),
           ),

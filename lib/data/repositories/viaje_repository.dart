@@ -30,9 +30,17 @@ class ViajeRepository {
     }
   }
 
-  /// Viajeros que salen de [ciudad] (`GET /api/viajes/buscar?ciudad=`).
-  Future<List<Viaje>> buscarPorOrigen(String ciudad) async =>
-      _lista(await _api.get('/api/viajes/buscar', query: {'ciudad': ciudad}));
+  /// Viajeros con viaje disponible en una ruta, con su nombre
+  /// (`GET /api/viajes/disponibles`, pública). Solo trae ruta, fecha, `uid` y
+  /// `nombreUsuario`: ni vuelo ni estado.
+  Future<List<Viaje>> disponiblesEnRuta(String origen, String destino) async =>
+      _lista(
+        await _api.get(
+          '/api/viajes/disponibles',
+          query: {'ciudadOrigen': origen, 'ciudadDestino': destino},
+          auth: false,
+        ),
+      );
 
   /// Cancela o cierra mi viaje (`PATCH /api/viajes/{id}/estado`). Después se
   /// puede registrar otro. 404 si no es mío. El servidor no revisa si lleva
@@ -66,7 +74,8 @@ class ViajeRepository {
     return Viaje.fromJson(json);
   }
 
-  /// Valida el vuelo con AeroDataBox (`GET /api/vuelos/:numero/:fecha`).
+  /// Valida el vuelo con AeroDataBox (`GET /api/vuelos/:numero/:fecha`,
+  /// pública: sin token).
   /// Devuelve la respuesta cruda (forma aún no confirmada) o lanza
   /// [ApiException] (404 = vuelo no encontrado). No se usa en la interfaz
   /// mientras el servidor responda 500 (`RAPIDAPI_KEY`); ver docs/11 §2H.
@@ -77,6 +86,7 @@ class ViajeRepository {
     final json = await _api.get(
       '/api/vuelos/${numero.replaceAll(' ', '').toUpperCase()}/'
       '${Viaje.fechaIso(fecha)}',
+      auth: false,
     );
     if (json is Map) return Map<String, dynamic>.from(json);
     if (json is List && json.isNotEmpty && json.first is Map) {

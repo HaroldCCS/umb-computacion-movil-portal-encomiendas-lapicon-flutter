@@ -5,6 +5,37 @@ import 'package:lapticon_app/data/models/usuario.dart';
 import 'package:lapticon_app/data/repositories/catalogo_repository.dart';
 
 void main() {
+  group('Usuario y fechaNacimiento (docs/11 §2D)', () {
+    test('el cuerpo nunca lleva uid ni email; la fecha solo si existe', () {
+      final u = Usuario.fromJson({
+        'user': {
+          'uid': 'abc',
+          'nombre': 'Ana',
+          'apellido': 'G',
+          'telefono': '300',
+          'nacionalidad': 'Peru',
+          'email': 'a@b.co',
+          'fechaNacimiento': '1999-01-31T00:00:00.000Z',
+        },
+      });
+      expect(u.fechaNacimiento, '1999-01-31');
+      expect(u.toRegisterJson(), {
+        'nombre': 'Ana',
+        'apellido': 'G',
+        'telefono': '300',
+        'nacionalidad': 'Peru',
+        'fechaNacimiento': '1999-01-31',
+      });
+      final sin = Usuario.fromJson({'uid': 'abc', 'email': 'a@b.co'});
+      expect(sin.fechaNacimiento, isNull);
+      expect(sin.toRegisterJson().keys, isNot(contains('fechaNacimiento')));
+      for (final c in [u.toRegisterJson(), sin.toRegisterJson()]) {
+        expect(c.keys, isNot(contains('uid')));
+        expect(c.keys, isNot(contains('email')));
+      }
+    });
+  });
+
   group('Usuario.fromJson', () {
     test('lee el perfil directo', () {
       final u = Usuario.fromJson({

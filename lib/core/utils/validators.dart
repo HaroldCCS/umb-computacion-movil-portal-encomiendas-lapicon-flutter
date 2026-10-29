@@ -11,6 +11,23 @@ abstract final class Validators {
     return null;
   }
 
+  /// Fecha de nacimiento opcional (`YYYY-MM-DD`): si se elige, mayor de edad
+  /// y con sentido.
+  static String? fechaNacimiento(String? value, {DateTime? hoy}) {
+    final v = value?.trim() ?? '';
+    if (v.isEmpty) return null;
+    final f = DateTime.tryParse(v);
+    if (f == null || f.toIso8601String().substring(0, 10) != v) {
+      return 'Revisa la fecha de nacimiento.';
+    }
+    final h = hoy ?? DateTime.now();
+    var edad = h.year - f.year;
+    if (h.month < f.month || (h.month == f.month && h.day < f.day)) edad--;
+    if (edad < 0 || edad > 120) return 'Revisa la fecha de nacimiento.';
+    if (edad < 18) return 'Debes ser mayor de edad para usar Lapticon.';
+    return null;
+  }
+
   static String? email(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'Escribe tu correo.';

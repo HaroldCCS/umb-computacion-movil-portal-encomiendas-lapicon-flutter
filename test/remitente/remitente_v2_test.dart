@@ -310,18 +310,31 @@ void main() {
       viajeroNombre: 'Andrés Ruiz',
     );
 
-    testWidgets('muestra viajeros con su calificación', (tester) async {
+    testWidgets('busca por ruta completa y muestra el nombre (docs/11 §2C)', (
+      tester,
+    ) async {
+      final pedidas = <({String origen, String destino})>[];
       await _montar(
         tester,
         const BuscarViajerosScreen(),
         extra: [
-          viajerosPorOrigenProvider.overrideWith((ref, c) async => [viaje]),
+          viajerosEnRutaProvider.overrideWith((ref, ruta) async {
+            pedidas.add(ruta);
+            return [viaje];
+          }),
         ],
       );
       expect(find.text('Encuentra quién viaja'), findsOneWidget);
+      // Solo con el origen todavía no busca: hace falta la ruta completa.
       await _elegirCiudad(tester, 'Elige la ciudad de origen', 'Bogota');
+      expect(find.text('Encuentra quién viaja'), findsOneWidget);
+      await _elegirCiudad(tester, 'Elige la ciudad de destino', 'Miami');
       expect(find.text('Andrés Ruiz'), findsOneWidget);
-      expect(find.text('AV10'), findsOneWidget);
+      expect(pedidas, [(origen: 'Bogota', destino: 'Miami')]);
+      // Intercambiar busca la ruta inversa.
+      await tester.tap(find.bySemanticsLabel('Intercambiar origen y destino'));
+      await tester.pumpAndSettle();
+      expect(pedidas.last, (origen: 'Miami', destino: 'Bogota'));
     });
 
     testWidgets('sin viajeros invita a publicar igual', (tester) async {
@@ -329,11 +342,12 @@ void main() {
         tester,
         const BuscarViajerosScreen(),
         extra: [
-          viajerosPorOrigenProvider.overrideWith((ref, c) async => const []),
+          viajerosEnRutaProvider.overrideWith((ref, ruta) async => const []),
         ],
       );
       await _elegirCiudad(tester, 'Elige la ciudad de origen', 'Miami');
-      expect(find.text('Nadie viaja desde Miami por ahora'), findsOneWidget);
+      await _elegirCiudad(tester, 'Elige la ciudad de destino', 'Bogota');
+      expect(find.text('Nadie viaja Miami → Bogota por ahora'), findsOneWidget);
       expect(find.text('Publicar encomienda'), findsOneWidget);
     });
   });

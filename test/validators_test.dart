@@ -2,6 +2,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lapticon_app/core/utils/validators.dart';
 
 void main() {
+  group('Validators.fechaNacimiento', () {
+    final hoy = DateTime(2026, 10, 28);
+    test('es opcional, pide mayoría de edad y una fecha con sentido', () {
+      expect(Validators.fechaNacimiento(null, hoy: hoy), isNull);
+      expect(Validators.fechaNacimiento('2000-05-20', hoy: hoy), isNull);
+      // Cumple 18 hoy.
+      expect(Validators.fechaNacimiento('2008-10-28', hoy: hoy), isNull);
+      expect(
+        Validators.fechaNacimiento('2008-10-29', hoy: hoy),
+        'Debes ser mayor de edad para usar Lapticon.',
+      );
+      for (final mala in ['2027-01-01', '1890-01-01', '2000-02-31', 'ayer']) {
+        expect(
+          Validators.fechaNacimiento(mala, hoy: hoy),
+          'Revisa la fecha de nacimiento.',
+          reason: mala,
+        );
+      }
+    });
+  });
+
   group('Validators.email', () {
     test('acepta correos válidos', () {
       expect(Validators.email('test30@gmail.com'), isNull);

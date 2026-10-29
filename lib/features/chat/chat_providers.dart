@@ -23,8 +23,9 @@ final conversacionesProvider = StreamProvider.autoDispose
       (ref, uid) => ref.watch(chatServiceProvider).conversaciones(uid),
     );
 
-/// Estado abierto/cerrado según el backend (`/api/chats/estado/:chatId`).
+/// Estado abierto/cerrado y desde cuándo, según el backend
+/// (`/api/chats/estado/:chatId`).
 final estadoChatProvider = FutureProvider.autoDispose
-    .family<EstadoChat, String>(
-      (ref, chatId) => ref.watch(chatRepositoryProvider).estado(chatId),
+    .family<({EstadoChat estado, DateTime? fechaCierre}), String>(
+      (ref, chatId) => ref.watch(chatRepositoryProvider).detalleEstado(chatId),
     );

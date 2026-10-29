@@ -1,6 +1,7 @@
 import '../../core/network/api_client.dart';
 import '../../core/network/app_exception.dart';
 import '../models/estado.dart';
+import '../models/json_utils.dart';
 
 /// Parte REST del chat: solo consulta si sigue abierto
 /// (`GET /api/chats/estado/:chatId`). Los mensajes van por Firestore
@@ -15,17 +16,34 @@ class ChatRepository {
   static String chatId(String uidA, String uidB) =>
       ([uidA, uidB]..sort()).join('_');
 
-  Future<EstadoChat> estado(String chatId) async {
+  /// `{ estado: activo | cerrado, fechaCierre }` (28-oct-2026). El backend
+  /// abre el chat del par al tomar una encomienda y lo cierra al marcarla
+  /// entregada.
+  Future<({EstadoChat estado, DateTime? fechaCierre})> detalleEstado(
+    String chatId,
+  ) async {
     try {
       final json = await _api.get('/api/chats/estado/$chatId');
-      return parseEstado(json);
+      final estado = parseEstado(json);
+      return (
+        estado: estado,
+        fechaCierre: estado == EstadoChat.cerrado && json is Map
+            ? readDate(Map<String, dynamic>.from(json), const ['fechaCierre'])
+            : null,
+      );
     } on ApiException catch (e) {
-      // Si el chat aún no existe se considera abierto. El endpoint responde
-      // 500 incluso para chats reales (22-oct-2026): no debe bloquear el chat.
-      if (e.isNotFound || e.statusCode >= 500) return EstadoChat.abierto;
+      // Si el chat no existe (404) o el servidor falla, se considera
+      // abierto: no debe bloquear el chat.
+      if (e.isNotFound || e.statusCode >= 500) {
+        return (estado: EstadoChat.abierto, fechaCierre: null);
+      }
       rethrow;
     }
   }
+
+  /// Solo abierto/cerrado (para revisar antes de cada envío).
+  Future<EstadoChat> estado(String chatId) async =>
+      (await detalleEstado(chatId)).estado;
 
   static EstadoChat parseEstado(dynamic json) {
     if (json is Map) {

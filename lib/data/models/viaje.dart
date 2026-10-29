@@ -63,7 +63,13 @@ class Viaje {
       fechaViaje: readDate(map, const ['fechaViaje', 'fecha']),
       estado: EstadoViaje.parse(map['estado']),
       viajeroUid: uid,
-      viajeroNombre: nombre,
+      // `GET /api/viajes/disponibles` trae el nombre plano en `nombreUsuario`.
+      viajeroNombre:
+          nombre ??
+          switch (readString(map, const ['nombreUsuario'])) {
+            '' => null,
+            final n => n,
+          },
     );
   }
 

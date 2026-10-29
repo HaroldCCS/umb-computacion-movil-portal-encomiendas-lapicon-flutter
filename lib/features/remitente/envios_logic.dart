@@ -1,5 +1,6 @@
 import '../../data/models/encomienda.dart';
 import '../../data/models/estado.dart';
+import '../../data/models/viaje.dart';
 
 /// Lógica pura del remitente (sin Flutter) para poder probarla.
 
@@ -191,3 +192,55 @@ Map<String, String> actualizarVistos(
         e.id: vistos![e.id]!,
   };
 }
+
+/// Completa `viajeroNombre` de las encomiendas con viajero: se pide una vez
+/// por ruta `viajes/disponibles` y se cruza por `uid`. Si falla o el viaje ya
+/// se cerró, quedan sin nombre.
+Future<List<Encomienda>> conNombresDeViajeros(
+  List<Encomienda> lista,
+  Future<List<Viaje>> Function(String origen, String destino) viajerosEnRuta,
+) async {
+  final rutas = {
+    for (final e in lista)
+      if (e.viajeroUid != null && e.viajeroNombre == null)
+        (e.ciudadOrigen, e.ciudadDestino),
+  };
+  final nombres = <String, String>{};
+  await Future.wait([
+    for (final (o, d) in rutas)
+      viajerosEnRuta(o, d)
+          .then((viajes) {
+            for (final v in viajes) {
+              if (v.viajeroUid != null && v.viajeroNombre != null) {
+                nombres[v.viajeroUid!] = v.viajeroNombre!;
+              }
+            }
+          })
+          // Sin nombre se muestra "Un viajero": no vale la pena fallar la
+          // lista por esto.
+          .catchError((Object _) {}),
+  ]);
+  return [
+    for (final e in lista)
+      if (e.viajeroNombre == null && nombres[e.viajeroUid] != null)
+        _conNombre(e, nombres[e.viajeroUid]!)
+      else
+        e,
+  ];
+}
+
+Encomienda _conNombre(Encomienda e, String nombre) => Encomienda(
+  id: e.id,
+  ciudadOrigen: e.ciudadOrigen,
+  ciudadDestino: e.ciudadDestino,
+  observaciones: e.observaciones,
+  moneda: e.moneda,
+  valor: e.valor,
+  estado: e.estado,
+  remitenteUid: e.remitenteUid,
+  remitenteNombre: e.remitenteNombre,
+  viajeroUid: e.viajeroUid,
+  viajeroNombre: nombre,
+  fechaVencimiento: e.fechaVencimiento,
+  creadaEn: e.creadaEn,
+);

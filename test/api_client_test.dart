@@ -8,6 +8,7 @@ import 'package:lapticon_app/core/network/app_exception.dart';
 import 'package:lapticon_app/data/models/estado.dart';
 import 'package:lapticon_app/data/repositories/chat_repository.dart';
 import 'package:lapticon_app/data/repositories/encomienda_repository.dart';
+import 'package:lapticon_app/data/repositories/viaje_repository.dart';
 
 void main() {
   late List<http.Request> requests;
@@ -187,6 +188,60 @@ void main() {
       'campo requerido',
     );
     expect(ApiClient.extractMessage('<html>Error</html>'), isNull);
+  });
+
+  test('estado del chat (28-oct): activo, y cerrado con su fecha', () async {
+    final api = clientWith(
+      (req, n) => http.Response(
+        jsonEncode(
+          n == 1
+              ? {'estado': 'activo', 'fechaCierre': null}
+              : {
+                  'estado': 'cerrado',
+                  'fechaCierre': '2026-10-29T00:46:00.283Z',
+                },
+        ),
+        200,
+      ),
+    );
+    final repo = ChatRepository(api);
+    final activo = await repo.detalleEstado('a_b');
+    expect(activo.estado, EstadoChat.abierto);
+    expect(activo.fechaCierre, isNull);
+    final cerrado = await repo.detalleEstado('a_b');
+    expect(cerrado.estado, EstadoChat.cerrado);
+    expect(cerrado.fechaCierre, DateTime.utc(2026, 10, 29, 0, 46, 0, 283));
+  });
+
+  test('viajeros en ruta y vuelos: rutas públicas, sin token', () async {
+    final api = clientWith(
+      (req, _) => http.Response.bytes(
+        utf8.encode(
+          jsonEncode([
+            {
+              'ciudadOrigen': 'Bogota',
+              'ciudadDestino': 'Miami',
+              'fechaViaje': '2026-12-01T00:00:00.000Z',
+              'nombreUsuario': 'Harold Viajero',
+              'uid': 'uidV',
+            },
+          ]),
+        ),
+        200,
+      ),
+    );
+    final v = await ViajeRepository(api).disponiblesEnRuta('Bogota', 'Miami');
+    expect(
+      [v.single.viajeroUid, v.single.viajeroNombre],
+      ['uidV', 'Harold Viajero'],
+    );
+    expect(
+      requests.single.url.toString(),
+      'https://api.test/api/viajes/disponibles?ciudadOrigen=Bogota&ciudadDestino=Miami',
+    );
+    expect(requests.single.headers['Authorization'], isNull);
+    await ViajeRepository(api).validarVuelo('AV10', DateTime(2026, 12, 1));
+    expect(requests.last.headers['Authorization'], isNull);
   });
 
   test('estado del chat: el 500 del backend no bloquea el chat', () async {

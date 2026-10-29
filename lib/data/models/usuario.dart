@@ -10,6 +10,7 @@ class Usuario {
     required this.telefono,
     required this.nacionalidad,
     this.email,
+    this.fechaNacimiento,
     this.rol,
     this.creadoEn,
   });
@@ -20,6 +21,10 @@ class Usuario {
   final String telefono;
   final String nacionalidad;
   final String? email;
+
+  /// Opcional (Swagger oficial), `YYYY-MM-DD`: se guarda como texto para no
+  /// correr el día por zona horaria.
+  final String? fechaNacimiento;
   final Rol? rol;
   final DateTime? creadoEn;
 
@@ -30,6 +35,7 @@ class Usuario {
         const <String, dynamic>{};
     final uid = readString(map, const ['uid', 'firebaseUid', 'userId', '_id']);
     final email = readString(map, const ['email', 'correo']);
+    final nacimiento = readString(map, const ['fechaNacimiento']);
     return Usuario(
       uid: uid.isNotEmpty ? uid : (uidFallback ?? ''),
       nombre: readString(map, const ['nombre', 'name', 'firstName']),
@@ -37,17 +43,23 @@ class Usuario {
       telefono: readString(map, const ['telefono', 'phone']),
       nacionalidad: readString(map, const ['nacionalidad', 'pais']),
       email: email.isEmpty ? null : email,
+      fechaNacimiento: RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(nacimiento)
+          ? nacimiento.substring(0, 10)
+          : null,
       rol: Rol.tryParse(map['rol'] ?? map['role']),
       creadoEn: readDate(map, const ['createdAt', 'fechaRegistro']),
     );
   }
 
   /// Cuerpo que espera `POST /api/users/register` y `PUT /api/users/:uid`.
+  /// Nunca lleva `uid` ni `email`: el `PUT` responde 400 si se intentan
+  /// cambiar (Swagger oficial).
   Map<String, dynamic> toRegisterJson() => {
     'nombre': nombre,
     'apellido': apellido,
     'telefono': telefono,
     'nacionalidad': nacionalidad,
+    if (fechaNacimiento != null) 'fechaNacimiento': fechaNacimiento,
   };
 
   /// El perfil está completo cuando tiene los datos que pide el registro.
@@ -68,6 +80,7 @@ class Usuario {
     String? telefono,
     String? nacionalidad,
     String? email,
+    String? fechaNacimiento,
     Rol? rol,
   }) => Usuario(
     uid: uid,
@@ -76,6 +89,7 @@ class Usuario {
     telefono: telefono ?? this.telefono,
     nacionalidad: nacionalidad ?? this.nacionalidad,
     email: email ?? this.email,
+    fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
     rol: rol ?? this.rol,
     creadoEn: creadoEn,
   );

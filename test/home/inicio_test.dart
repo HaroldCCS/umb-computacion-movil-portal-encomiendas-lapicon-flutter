@@ -98,6 +98,48 @@ class _SesionFalsa extends ChangeNotifier implements SessionController {
 
 void main() {
   group('Lógica', () {
+    test(
+      'conNombresDeViajeros: un pedido por ruta y, si falla, sin nombre',
+      () async {
+        final sinNombre = [
+          const Encomienda(
+            id: '1',
+            ciudadOrigen: 'Bogotá',
+            ciudadDestino: 'Miami',
+            observaciones: 'x',
+            moneda: 'USD',
+            valor: 1,
+            estado: EstadoEncomienda.tomada,
+            viajeroUid: 'v1',
+          ),
+          _e('2', EstadoEncomienda.disponible, viajero: null),
+        ];
+        final pedidos = <String>[];
+        final r = await conNombresDeViajeros(sinNombre, (o, d) async {
+          pedidos.add('$o→$d');
+          return [
+            Viaje(
+              id: '',
+              numeroVuelo: '',
+              ciudadOrigen: o,
+              ciudadDestino: d,
+              fechaViaje: null,
+              estado: EstadoViaje.desconocido,
+              viajeroUid: 'v1',
+              viajeroNombre: 'Luis Pérez',
+            ),
+          ];
+        });
+        expect(r.map((e) => e.viajeroNombre), ['Luis Pérez', null]);
+        expect(pedidos, ['Bogotá→Miami']);
+        final sinRed = await conNombresDeViajeros(
+          sinNombre,
+          (o, d) => Future.error(Exception('sin red')),
+        );
+        expect(sinRed.map((e) => e.viajeroNombre), [null, null]);
+      },
+    );
+
     test('nuevas tomadas: avisa una vez y solo de lo nuevo', () {
       final a = _e('a', EstadoEncomienda.disponible, viajero: null);
       final tomadaA = _e('a', EstadoEncomienda.tomada);

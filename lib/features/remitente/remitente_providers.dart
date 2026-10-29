@@ -5,16 +5,25 @@ import '../../data/models/viaje.dart';
 import '../../providers.dart';
 import 'envios_logic.dart';
 
-/// Mis encomiendas como remitente (`GET /api/encomiendas`).
+/// Mis encomiendas como remitente (`GET /api/encomiendas`), con el nombre del
+/// viajero cuando se conoce: `GET /api/viajes/disponibles` lo da mientras su
+/// viaje siga disponible (docs/11 §2C).
 /// Se refresca con `ref.invalidate(misEncomiendasProvider)`.
-final misEncomiendasProvider = FutureProvider<List<Encomienda>>(
-  (ref) => ref.watch(encomiendaRepositoryProvider).mias(),
-);
+final misEncomiendasProvider = FutureProvider<List<Encomienda>>((ref) async {
+  final viajes = ref.watch(viajeRepositoryProvider);
+  return conNombresDeViajeros(
+    await ref.watch(encomiendaRepositoryProvider).mias(),
+    viajes.disponiblesEnRuta,
+  );
+});
 
-/// Viajeros que salen de una ciudad (`GET /api/viajes/buscar?ciudad=`).
-final viajerosPorOrigenProvider = FutureProvider.family<List<Viaje>, String>(
-  (ref, ciudad) => ref.watch(viajeRepositoryProvider).buscarPorOrigen(ciudad),
-);
+/// Viajeros con viaje disponible en una ruta, con nombre (pública).
+final viajerosEnRutaProvider =
+    FutureProvider.family<List<Viaje>, ({String origen, String destino})>(
+      (ref, ruta) => ref
+          .watch(viajeRepositoryProvider)
+          .disponiblesEnRuta(ruta.origen, ruta.destino),
+    );
 
 /// Chip elegido en "Mis envíos". El Inicio lo cambia para llevar directo a
 /// las entregadas.
